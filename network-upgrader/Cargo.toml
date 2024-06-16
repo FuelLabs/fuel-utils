@@ -17,12 +17,8 @@ path = "src/main.rs"
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive", "env"] }
 fuel-tx = "0.52.0"
-fuels = "0.63.1"
+fuels = "0.64.0"
 fuels-core = "0.63.1"
 serde_json = { version = "1.0", features = ["raw_value"] }
 termion = "4"
 tokio = "1"
-
-[patch.crates-io]
-fuels = { git = "https://github.com/FuelLabs/fuels-rs/", branch = "feature/fuel-core-0.28.0" }
-fuels-core = { git = "https://github.com/FuelLabs/fuels-rs/", branch = "feature/fuel-core-0.28.0" }
