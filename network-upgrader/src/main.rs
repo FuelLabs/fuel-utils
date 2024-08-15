@@ -1,5 +1,3 @@
-#![deny(unused_crate_dependencies)]
-
 //! A simple utility tool to interact with the network.
 use clap::Parser;
 use fuel_tx::{
@@ -163,12 +161,14 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
         );
         wallet.add_witnesses(&mut builder)?;
         wallet.adjust_for_fee(&mut builder, 0).await?;
+        let max_fee = builder.tx_policies.max_fee().unwrap_or(1_000_000_000);
+        builder.tx_policies = builder.tx_policies.with_max_fee(max_fee * 2);
         let tx = builder.build(provider).await?;
 
         let result = provider.send_transaction(tx).await?;
         println!("Subsection `{i}` successfully committed to the network with tx id `{result}`.");
         // Wait for sentries to update off-chain database.
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::time::sleep(Duration::from_secs(4)).await;
     }
 
     Ok(())
@@ -207,6 +207,8 @@ async fn upgrade_state_transition(
     );
     wallet.add_witnesses(&mut builder)?;
     wallet.adjust_for_fee(&mut builder, 0).await?;
+    let max_fee = builder.tx_policies.max_fee().unwrap_or(1_000_000_000);
+    builder.tx_policies = builder.tx_policies.with_max_fee(max_fee * 2);
     let tx = builder.build(provider).await?;
 
     let result = provider.send_transaction(tx).await?;
@@ -237,6 +239,8 @@ async fn upgrade_consensus_parameters(
     );
     wallet.add_witnesses(&mut builder)?;
     wallet.adjust_for_fee(&mut builder, 0).await?;
+    let max_fee = builder.tx_policies.max_fee().unwrap_or(1_000_000_000);
+    builder.tx_policies = builder.tx_policies.with_max_fee(max_fee * 2);
     let tx = builder.build(provider).await?;
 
     let result = provider.send_transaction(tx).await?;
