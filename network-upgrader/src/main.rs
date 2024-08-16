@@ -112,7 +112,7 @@ pub struct Parameters {
 
 /// Utilities for interacting with the Fuel network.
 #[derive(Debug, Parser)]
-#[clap(name = "fuel-core-keygen", author, version, about)]
+#[clap(name = "fuel-core-network-upgrader", author, version, about)]
 enum Command {
     Upgrade(Upgrade),
     Upload(Upload),

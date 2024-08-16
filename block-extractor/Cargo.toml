@@ -1,0 +1,23 @@
+[package]
+name = "fuel-core-block-extractor"
+version = "0.1.0"
+edition = "2021"
+homepage = "https://fuel.network/"
+keywords = ["blockchain", "cryptocurrencies", "fuel-vm", "vm", "utils"]
+license = "Apache-2.0"
+repository = "https://github.com/FuelLabs/fuel-utils"
+description = "Command line utilities to extract blocks of the Fuel network into the file"
+
+[[bin]]
+name = "fuel-core-block-extractor"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive", "env"] }
+fuel-tx = "0.56.0"
+fuel-core-client = "0.32.1"
+fuel-core-client-ext = "0.32.1"
+fuel-core-types = { version = "0.32.1", features = ["serde", "test-helpers"] }
+serde_json = { version = "1.0", features = ["raw_value"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
