@@ -51,7 +51,7 @@ impl Blocks {
     }
 
     fn block_exists(&self, block_height: u32) -> bool {
-        fs::metadata(self.block_path(block_height)).is_ok()
+        self.block_path(block_height).exists()
     }
 }
 
