@@ -43,6 +43,9 @@ pub struct Upload {
     /// Default size is 64KB.
     #[clap(long = "starting-subsection", default_value = "0", short = 's', env)]
     pub starting_subsection: usize,
+    /// Optional flag to sign with KMS
+    #[clap(long = "aws_kms_key_id", default_value = "None", env)]
+    pub aws_kms_key_id: Option<String>,
 }
 
 /// Transfers assets to recipient.
@@ -60,6 +63,9 @@ pub struct Transfer {
     /// The asset to transfer.
     #[clap(long = "asset-id", short = 'i', env)]
     pub asset_id: Option<AssetId>,
+    /// Optional flag to sign with KMS
+    #[clap(long = "aws_kms_key_id", default_value = "None", env)]
+    pub aws_kms_key_id: Option<String>,
 }
 
 /// Upgrades the state transition function of the network.
@@ -70,6 +76,9 @@ pub struct Upgrade {
     pub url: String,
     #[clap(subcommand)]
     upgrade: UpgradeVariants,
+    /// Optional flag to sign with KMS
+    #[clap(long = "aws_kms_key_id", default_value = "None", env)]
+    pub aws_kms_key_id: Option<String>,
 }
 
 /// The command allows the upgrade of the Fuel network.
@@ -133,7 +142,7 @@ impl Command {
 
 async fn upload(upload: &Upload) -> anyhow::Result<()> {
     let provider = Provider::connect(upload.url.as_str()).await?;
-    let secret_key = handle_secret()?;
+    let secret_key = handle_secret(upload.aws_kms_key_id).await?;
     let wallet = WalletUnlocked::new_from_private_key(secret_key, Some(provider));
 
     println!("Reading bytecode from `{}`.", upload.path.to_string_lossy());
@@ -176,7 +185,7 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
 
 async fn upgrade(upgrade: &Upgrade) -> anyhow::Result<()> {
     let provider = Provider::connect(upgrade.url.as_str()).await?;
-    let secret_key = handle_secret()?;
+    let secret_key = handle_secret(upgrade.aws_kms_key_id).await?;
     let wallet = WalletUnlocked::new_from_private_key(secret_key, Some(provider));
 
     match &upgrade.upgrade {
@@ -255,7 +264,7 @@ async fn upgrade_consensus_parameters(
 async fn transfer(transfer: &Transfer) -> anyhow::Result<()> {
     let provider = Provider::connect(transfer.url.as_str()).await?;
     let consensus_parameters = provider.consensus_parameters().clone();
-    let secret_key = handle_secret()?;
+    let secret_key = handle_secret(transfer.aws_kms_key_id).await?;
     let wallet = WalletUnlocked::new_from_private_key(secret_key, Some(provider));
     let recipient = transfer.recipient;
     let amount = transfer.amount;
@@ -290,13 +299,44 @@ async fn main() -> anyhow::Result<()> {
     cmd.exec().await
 }
 
-fn handle_secret() -> anyhow::Result<SecretKey> {
-    println!("Paste the private key to sign the transaction:");
-    let secret = std::io::stdin()
-        .read_passwd(&mut std::io::stdout())?
-        .ok_or(anyhow::anyhow!("The private key was not entered"))?;
+pub enum SignMode {
+    Kms {
+        key_id: String,
+        client: aws_sdk_kms::Client
+    },
+    SecretKey(SecretKey),
+}
 
-    let secret_key: SecretKey = secret.as_str().parse()?;
-    println!("The private key was decoded successfully.");
-    Ok(secret_key)
+async fn handle_secret(aws_kms_key_id: Option<String>) -> anyhow::Result<SignMode> {
+    match aws_kms_key_id {
+        Some(key_id) => {
+            let config = aws_config::load_from_env().await;
+            let client = aws_sdk_kms::Client::new(&config);
+            // Ensure that the key is accessible and has the correct type
+            let key = client
+                .get_public_key()
+                .key_id(&key_id)
+                .send()
+                .await?
+                .key_spec;
+            if key != Some(aws_sdk_kms::types::KeySpec::EccSecgP256K1) {
+                anyhow::bail!("The key is not of the correct type, got {:?}", key);
+            } else {
+                Ok(SignMode::Kms {
+                    key_id,
+                    client
+                })
+            }
+        }
+        None => {
+            println!("Paste the private key to sign the transaction:");
+            let secret = std::io::stdin()
+                .read_passwd(&mut std::io::stdout())?
+                .ok_or(anyhow::anyhow!("The private key was not entered"))?;
+        
+            let secret_key: SecretKey = secret.as_str().parse()?;
+            println!("The private key was decoded successfully.");
+            Ok(SignMode::SecretKey(secret_key))
+        }
+    }
 }
