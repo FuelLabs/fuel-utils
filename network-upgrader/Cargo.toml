@@ -23,8 +23,7 @@ aws-sdk-kms = "1.37.0"
 k256 = { version = "0.13.3", features = ["ecdsa-core"] }
 clap = { version = "4.5", features = ["derive", "env"] }
 fuel-tx = "0.56.0"
-# This branch is a temporary solution because fuels has froze breaking changes merge until december
-fuels = { git = "https://github.com/FuelLabs/fuels-rs.git", branch = "move_method_from_account_to_view_only_account" }
+fuels = "0.66.0"
 fuels-core = "0.66.0"
 fuel-core-client = "0.32.1"
 fuel-core-types = "0.32.1"
