@@ -102,7 +102,7 @@ impl KMSWallet {
     }
 
     pub fn address(&self) -> &Bech32Address {
-        &self.wallet.address()
+        self.wallet.address()
     }
 
     pub fn provider(&self) -> Option<&Provider> {
@@ -151,7 +151,9 @@ impl Signer for KMSWallet {
 
         let correct_public_key =
             k256::PublicKey::from_public_key_der(&self.kms_data.cached_public_key)
-                .map_err(|_| Error::Other(format!("invalid DER signature from AWS KMS")))?
+                .map_err(|_| {
+                    Error::Other("invalid DER signature from AWS KMS".to_owned())
+                })?
                 .into();
 
         let recovery_id = if rec1.map(|r| r == correct_public_key).unwrap_or(false) {

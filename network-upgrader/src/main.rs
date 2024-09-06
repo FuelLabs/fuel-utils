@@ -12,11 +12,9 @@ use fuels::{
     crypto::SecretKey,
     prelude::Provider,
     types::transaction_builders::{
-            BuildableTransaction,
-            ScriptTransactionBuilder,
-            UpgradeTransactionBuilder,
-            UploadTransactionBuilder,
-        },
+        UpgradeTransactionBuilder,
+        UploadTransactionBuilder,
+    },
 };
 use std::{
     fs,
@@ -289,33 +287,11 @@ async fn transfer(transfer: &Transfer) -> anyhow::Result<()> {
     let asset_id = transfer
         .asset_id
         .unwrap_or(*consensus_parameters.base_asset_id());
-    
     let sender: Address = wallet.address().into();
-    let provider = wallet.provider().unwrap();
 
-    let inputs = wallet
-        .get_asset_inputs_for_amount(asset_id, amount, None)
-        .await?;
-    let outputs =
-        wallet.get_asset_outputs_for_amount(&recipient.into(), asset_id, amount);
-
-    let mut tx_builder =
-        ScriptTransactionBuilder::prepare_transfer(inputs, outputs, Default::default());
-
-    wallet.add_witnesses(&mut tx_builder)?;
-
-    let used_base_amount = if asset_id == *provider.base_asset_id() {
-        amount
-    } else {
-        0
-    };
     wallet
-        .adjust_for_fee(&mut tx_builder, used_base_amount)
+        .transfer(&recipient.into(), amount, asset_id, Default::default())
         .await?;
-
-    let tx = tx_builder.build(provider.clone()).await?;
-
-    provider.send_transaction_and_await_commit(tx).await?;
 
     println!(
         "Successfully transferred `{amount}` of `{asset_id}` \
