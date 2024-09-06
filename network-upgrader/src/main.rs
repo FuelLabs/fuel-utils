@@ -10,14 +10,11 @@ use fuel_tx::{
 use fuels::{
     accounts::Account,
     crypto::SecretKey,
-    prelude::{
-        Provider,
-        WalletUnlocked,
+    prelude::Provider,
+    types::transaction_builders::{
+        UpgradeTransactionBuilder,
+        UploadTransactionBuilder,
     },
-};
-use fuels_core::types::transaction_builders::{
-    UpgradeTransactionBuilder,
-    UploadTransactionBuilder,
 };
 use std::{
     fs,
@@ -25,6 +22,10 @@ use std::{
     time::Duration,
 };
 use termion::input::TermRead;
+use upgrader_wallet::UpgraderWallet;
+
+mod kms_wallet;
+mod upgrader_wallet;
 
 /// Uploads the state transition bytecode.
 #[derive(Debug, clap::Args)]
@@ -43,6 +44,9 @@ pub struct Upload {
     /// Default size is 64KB.
     #[clap(long = "starting-subsection", default_value = "0", short = 's', env)]
     pub starting_subsection: usize,
+    /// Optional flag to sign with KMS
+    #[clap(long = "aws_kms_key_id", default_value = None, env)]
+    pub aws_kms_key_id: Option<String>,
 }
 
 /// Transfers assets to recipient.
@@ -60,6 +64,9 @@ pub struct Transfer {
     /// The asset to transfer.
     #[clap(long = "asset-id", short = 'i', env)]
     pub asset_id: Option<AssetId>,
+    /// Optional flag to sign with KMS
+    #[clap(long = "aws_kms_key_id", default_value = None, env)]
+    pub aws_kms_key_id: Option<String>,
 }
 
 /// Upgrades the state transition function of the network.
@@ -70,6 +77,9 @@ pub struct Upgrade {
     pub url: String,
     #[clap(subcommand)]
     upgrade: UpgradeVariants,
+    /// Optional flag to sign with KMS
+    #[clap(long = "aws_kms_key_id", default_value = None, env)]
+    pub aws_kms_key_id: Option<String>,
 }
 
 /// The command allows the upgrade of the Fuel network.
@@ -120,6 +130,24 @@ enum Command {
     Parameters(Parameters),
 }
 
+async fn create_wallet(
+    aws_kms_key_id: Option<String>,
+    provider: Option<Provider>,
+) -> anyhow::Result<UpgraderWallet> {
+    match aws_kms_key_id {
+        Some(key_id) => UpgraderWallet::from_kms_key_id(key_id, provider).await,
+        None => {
+            println!("Paste the private key to sign the transaction:");
+            let secret = std::io::stdin()
+                .read_passwd(&mut std::io::stdout())?
+                .ok_or(anyhow::anyhow!("The private key was not entered"))?;
+
+            let secret_key: SecretKey = secret.as_str().parse()?;
+            Ok(UpgraderWallet::from_secret_key(secret_key, provider))
+        }
+    }
+}
+
 impl Command {
     async fn exec(&self) -> anyhow::Result<()> {
         match self {
@@ -133,8 +161,7 @@ impl Command {
 
 async fn upload(upload: &Upload) -> anyhow::Result<()> {
     let provider = Provider::connect(upload.url.as_str()).await?;
-    let secret_key = handle_secret()?;
-    let wallet = WalletUnlocked::new_from_private_key(secret_key, Some(provider));
+    let wallet = create_wallet(upload.aws_kms_key_id.clone(), Some(provider)).await?;
 
     println!("Reading bytecode from `{}`.", upload.path.to_string_lossy());
     let bytecode = fs::read(&upload.path)?;
@@ -176,8 +203,7 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
 
 async fn upgrade(upgrade: &Upgrade) -> anyhow::Result<()> {
     let provider = Provider::connect(upgrade.url.as_str()).await?;
-    let secret_key = handle_secret()?;
-    let wallet = WalletUnlocked::new_from_private_key(secret_key, Some(provider));
+    let wallet = create_wallet(upgrade.aws_kms_key_id.clone(), Some(provider)).await?;
 
     match &upgrade.upgrade {
         UpgradeVariants::StateTransition(cmd) => {
@@ -192,7 +218,7 @@ async fn upgrade(upgrade: &Upgrade) -> anyhow::Result<()> {
 }
 
 async fn upgrade_state_transition(
-    wallet: &WalletUnlocked,
+    wallet: &UpgraderWallet,
     state_transition: &StateTransition,
 ) -> anyhow::Result<()> {
     let provider = wallet.provider().unwrap();
@@ -221,7 +247,7 @@ async fn upgrade_state_transition(
 }
 
 async fn upgrade_consensus_parameters(
-    wallet: &WalletUnlocked,
+    wallet: &UpgraderWallet,
     cmd: &ConsensusParametersCommand,
 ) -> anyhow::Result<()> {
     let provider = wallet.provider().unwrap();
@@ -255,8 +281,7 @@ async fn upgrade_consensus_parameters(
 async fn transfer(transfer: &Transfer) -> anyhow::Result<()> {
     let provider = Provider::connect(transfer.url.as_str()).await?;
     let consensus_parameters = provider.consensus_parameters().clone();
-    let secret_key = handle_secret()?;
-    let wallet = WalletUnlocked::new_from_private_key(secret_key, Some(provider));
+    let wallet = create_wallet(transfer.aws_kms_key_id.clone(), Some(provider)).await?;
     let recipient = transfer.recipient;
     let amount = transfer.amount;
     let asset_id = transfer
@@ -288,15 +313,4 @@ async fn parameters(parameters: &Parameters) -> anyhow::Result<()> {
 async fn main() -> anyhow::Result<()> {
     let cmd = Command::parse();
     cmd.exec().await
-}
-
-fn handle_secret() -> anyhow::Result<SecretKey> {
-    println!("Paste the private key to sign the transaction:");
-    let secret = std::io::stdin()
-        .read_passwd(&mut std::io::stdout())?
-        .ok_or(anyhow::anyhow!("The private key was not entered"))?;
-
-    let secret_key: SecretKey = secret.as_str().parse()?;
-    println!("The private key was decoded successfully.");
-    Ok(secret_key)
 }
