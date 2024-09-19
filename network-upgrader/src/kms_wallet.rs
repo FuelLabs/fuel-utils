@@ -88,8 +88,11 @@ impl KMSWallet {
             anyhow::bail!("invalid DER public key from AWS KMS");
         };
         let public_key = PublicKey::from(correct_public_key);
-        let hashed = public_key.hash();
-        let address = Bech32Address::new(FUEL_BECH32_HRP, hashed);
+        let fuel_address = public_key.hash();
+
+        println!("Fuel address: {}", fuel_address);
+
+        let address = Bech32Address::new(FUEL_BECH32_HRP, fuel_address);
         Ok(Self {
             wallet: Wallet::from_address(address.clone(), provider),
             kms_data: KMSData {
