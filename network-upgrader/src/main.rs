@@ -1,5 +1,6 @@
 //! A simple utility tool to interact with the network.
 use clap::Parser;
+use fuel_core_types::fuel_crypto::Hasher;
 use fuel_tx::{
     Address,
     AssetId,
@@ -15,6 +16,10 @@ use fuels::{
         UpgradeTransactionBuilder,
         UploadTransactionBuilder,
     },
+};
+use fuels_core::types::{
+    bech32::Bech32Address,
+    transaction_builders::TransactionBuilder,
 };
 use std::{
     fs,
@@ -182,14 +187,31 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
     {
         let provider = wallet.provider().unwrap();
         println!("Processing subsection `{i}`.");
-        let mut builder = UploadTransactionBuilder::prepare_subsection_upload(
+
+        let subsection_witness_index = 0;
+        let outputs = vec![];
+        let UploadSubsection {
+            root,
             subsection,
-            Default::default(),
-        );
+            subsection_index,
+            subsections_number,
+            proof_set,
+        } = subsection;
+        let witnesses = vec![subsection.into()];
+        let proof_set = proof_set.into_iter().map(|p| (*p).into()).collect();
+
+        let mut builder = UploadTransactionBuilder::default()
+            .with_tx_policies(Default::default())
+            .with_root((*root).into())
+            .with_witness_index(subsection_witness_index)
+            .with_subsection_index(subsection_index)
+            .with_subsections_number(subsections_number)
+            .with_proof_set(proof_set)
+            .with_outputs(outputs)
+            .with_witnesses(witnesses);
+
         wallet.add_witnesses(&mut builder)?;
         wallet.adjust_for_fee(&mut builder, 0).await?;
-        let max_fee = builder.tx_policies.max_fee().unwrap_or(1_000_000_000);
-        builder.tx_policies = builder.tx_policies.with_max_fee(max_fee * 2);
         let tx = builder.build(provider).await?;
 
         let result = provider.send_transaction(tx).await?;
@@ -228,13 +250,11 @@ async fn upgrade_state_transition(
         root
     );
     let mut builder = UpgradeTransactionBuilder::prepare_state_transition_upgrade(
-        root,
+        (*root).into(),
         Default::default(),
     );
     wallet.add_witnesses(&mut builder)?;
     wallet.adjust_for_fee(&mut builder, 0).await?;
-    let max_fee = builder.tx_policies.max_fee().unwrap_or(1_000_000_000);
-    builder.tx_policies = builder.tx_policies.with_max_fee(max_fee * 2);
     let tx = builder.build(provider).await?;
 
     let result = provider.send_transaction(tx).await?;
@@ -259,20 +279,33 @@ async fn upgrade_consensus_parameters(
     let new_consensus_parameters: ConsensusParameters =
         serde_json::from_slice(consensus_parameters.as_slice())?;
 
-    let mut builder = UpgradeTransactionBuilder::prepare_consensus_parameters_upgrade(
-        &new_consensus_parameters,
-        Default::default(),
-    );
+    let serialized_consensus_parameters =
+        postcard::to_allocvec(&new_consensus_parameters)
+            .expect("Impossible to fail unless there is not enough memory");
+    let checksum = Hasher::hash(&serialized_consensus_parameters);
+    let witness_index = 0;
+    let outputs = vec![];
+    let witnesses = vec![serialized_consensus_parameters.into()];
+
+    let mut builder = UpgradeTransactionBuilder::default()
+        .with_tx_policies(Default::default())
+        .with_purpose(fuels::tx::UpgradePurpose::ConsensusParameters {
+            witness_index,
+            checksum: (*checksum).into(),
+        })
+        .with_outputs(outputs)
+        .with_witnesses(witnesses);
     wallet.add_witnesses(&mut builder)?;
     wallet.adjust_for_fee(&mut builder, 0).await?;
     let max_fee = builder.tx_policies.max_fee().unwrap_or(1_000_000_000);
     builder.tx_policies = builder.tx_policies.with_max_fee(max_fee * 2);
     let tx = builder.build(provider).await?;
 
-    let result = provider.send_transaction(tx).await?;
+    let client = fuels::client::FuelClient::new(provider.url())?;
+    let result = client.submit_and_await_commit(&tx.into()).await?;
     println!(
         "The consensus parameters of the network \
-        are successfully upgraded by transaction `{result}`."
+        are successfully upgraded by transaction `{result:?}`."
     );
 
     Ok(())
@@ -282,15 +315,15 @@ async fn transfer(transfer: &Transfer) -> anyhow::Result<()> {
     let provider = Provider::connect(transfer.url.as_str()).await?;
     let consensus_parameters = provider.consensus_parameters().clone();
     let wallet = create_wallet(transfer.aws_kms_key_id.clone(), Some(provider)).await?;
-    let recipient = transfer.recipient;
+    let recipient: fuels::types::Address = (*transfer.recipient).into();
+    let bench_recipient = Bech32Address::from(recipient);
     let amount = transfer.amount;
-    let asset_id = transfer
-        .asset_id
-        .unwrap_or(*consensus_parameters.base_asset_id());
-    let sender: Address = wallet.address().into();
+    let asset_id = transfer.asset_id.map(|id| (*id).into());
+    let asset_id = asset_id.unwrap_or(*consensus_parameters.base_asset_id());
+    let sender = wallet.address();
 
     wallet
-        .transfer(&recipient.into(), amount, asset_id, Default::default())
+        .transfer(&bench_recipient, amount, asset_id, Default::default())
         .await?;
 
     println!(

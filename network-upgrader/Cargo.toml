@@ -17,16 +17,16 @@ path = "src/main.rs"
 anyhow = "1.0"
 async-trait = "0.1"
 aws-config = { version = "1.1.7", features = [
-  "behavior-version-latest",
+    "behavior-version-latest",
 ] }
 aws-sdk-kms = "1.37.0"
 k256 = { version = "0.13.3", features = ["ecdsa-core"] }
 clap = { version = "4.5", features = ["derive", "env"] }
-fuel-tx = "0.56.0"
+fuel-tx = "0.57.0"
 fuels = "0.66.0"
 fuels-core = "0.66.0"
-fuel-core-client = "0.32.1"
-fuel-core-types = "0.32.1"
+fuel-core-types = "0.36.0"
+postcard = "1"
 serde_json = { version = "1.0", features = ["raw_value"] }
 termion = "4"
 tokio = "1"
