@@ -297,8 +297,6 @@ async fn upgrade_consensus_parameters(
         .with_witnesses(witnesses);
     wallet.add_witnesses(&mut builder)?;
     wallet.adjust_for_fee(&mut builder, 0).await?;
-    let max_fee = builder.tx_policies.max_fee().unwrap_or(1_000_000_000);
-    builder.tx_policies = builder.tx_policies.with_max_fee(max_fee * 2);
     let tx = builder.build(provider).await?;
 
     let client = fuels::client::FuelClient::new(provider.url())?;
