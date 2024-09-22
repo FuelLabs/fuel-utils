@@ -10,6 +10,7 @@ use fuel_tx::{
 };
 use fuels::{
     accounts::Account,
+    client::FuelClient,
     crypto::SecretKey,
     prelude::Provider,
     types::transaction_builders::{
@@ -275,13 +276,19 @@ async fn upgrade_consensus_parameters(
         "Preparing upgrade of consensus parameters from `{}` file.",
         cmd.path.to_string_lossy()
     );
-    let consensus_parameters = fs::read(&cmd.path)?;
+    let consensus_parameters = fs::read_to_string(&cmd.path)?;
     let new_consensus_parameters: ConsensusParameters =
-        serde_json::from_slice(consensus_parameters.as_slice())?;
+        serde_json::from_str(consensus_parameters.as_str())?;
 
     let serialized_consensus_parameters =
         postcard::to_allocvec(&new_consensus_parameters)
             .expect("Impossible to fail unless there is not enough memory");
+
+    let deserialize =
+        postcard::from_bytes::<ConsensusParameters>(&serialized_consensus_parameters)?;
+    let deserialize_json = serde_json::to_string_pretty(&deserialize)?;
+    assert_eq!(deserialize_json, consensus_parameters);
+
     let checksum = Hasher::hash(&serialized_consensus_parameters);
     let witness_index = 0;
     let outputs = vec![];
@@ -333,8 +340,9 @@ async fn transfer(transfer: &Transfer) -> anyhow::Result<()> {
 }
 
 async fn parameters(parameters: &Parameters) -> anyhow::Result<()> {
-    let provider = Provider::connect(parameters.url.as_str()).await?;
-    let json = serde_json::to_string_pretty(provider.consensus_parameters())?;
+    let client = FuelClient::new(parameters.url.as_str())?;
+    let consensus_parameters = client.chain_info().await?.consensus_parameters;
+    let json = serde_json::to_string_pretty(&consensus_parameters)?;
     println!("Writing file into `{}`.", parameters.path.to_string_lossy());
     fs::write(&parameters.path, json)?;
     Ok(())
