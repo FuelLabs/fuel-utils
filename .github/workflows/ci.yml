@@ -30,6 +30,8 @@ env:
 jobs:
   publish-binary:
     name: Release binaries
+    # Only do this job if publishing a release
+    if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ${{ matrix.job.os }}
     strategy:
       fail-fast: false
