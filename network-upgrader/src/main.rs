@@ -289,8 +289,7 @@ async fn upgrade_consensus_parameters(
 
     let deserialize =
         postcard::from_bytes::<ConsensusParameters>(&serialized_consensus_parameters)?;
-    let deserialize_json = serde_json::to_string_pretty(&deserialize)?;
-    assert_eq!(deserialize_json, consensus_parameters);
+    assert_eq!(deserialize, new_consensus_parameters);
 
     let checksum = Hasher::hash(&serialized_consensus_parameters);
     let witness_index = 0;
