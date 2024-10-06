@@ -55,12 +55,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup custom cross env ${{ matrix.job.cross_image }}
-        if: matrix.job.cross_image
-        uses: docker/build-push-action@v2
-        with:
-          tags: ${{ matrix.job.cross_image }}:latest
-
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@master
         with:
