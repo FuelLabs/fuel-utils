@@ -255,7 +255,8 @@ async fn upgrade_state_transition(
     let mut builder = UpgradeTransactionBuilder::prepare_state_transition_upgrade(
         (*root).into(),
         Default::default(),
-    );
+    )
+    .with_estimation_horizon(10);
     wallet.add_witnesses(&mut builder)?;
     wallet.adjust_for_fee(&mut builder, 0).await?;
     let tx = builder.build(provider).await?;
@@ -303,7 +304,8 @@ async fn upgrade_consensus_parameters(
             checksum: (*checksum).into(),
         })
         .with_outputs(outputs)
-        .with_witnesses(witnesses);
+        .with_witnesses(witnesses)
+        .with_estimation_horizon(10);
     wallet.add_witnesses(&mut builder)?;
     wallet.adjust_for_fee(&mut builder, 0).await?;
     let tx = builder.build(provider).await?;
