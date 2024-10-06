@@ -1,16 +1,18 @@
 //! A simple utility tool to interact with the network.
 use clap::Parser;
-use fuel_core_types::fuel_crypto::Hasher;
-use fuel_tx::{
-    Address,
-    AssetId,
-    Bytes32,
-    ConsensusParameters,
-    UploadSubsection,
+use fuel_core_client::client::FuelClient;
+use fuel_core_types::{
+    fuel_crypto::Hasher,
+    fuel_tx::{
+        Address,
+        AssetId,
+        Bytes32,
+        ConsensusParameters,
+        UploadSubsection,
+    },
 };
 use fuels::{
     accounts::Account,
-    client::FuelClient,
     crypto::SecretKey,
     prelude::Provider,
     types::transaction_builders::{
