@@ -69,6 +69,7 @@ jobs:
       - name: Build binaries
         run: |
           cross build --profile=release --target ${{ matrix.job.target }} --manifest-path network-upgrader/Cargo.toml
+          cross build --profile=release --target ${{ matrix.job.target }} --manifest-path block-extractor/Cargo.toml
 
       - name: Prepare Binary Artifact
         env:
@@ -87,6 +88,7 @@ jobs:
           # create zip file
           mkdir -pv "$ARTIFACT"
           cp "network-upgrader/target/${{ matrix.job.target }}/release/fuel-core-network-upgrader" "$ARTIFACT"
+          cp "block-extractor/target/${{ matrix.job.target }}/release/fuel-core-block-extractor" "$ARTIFACT"
           tar -czvf "$ZIP_FILE_NAME" "$ARTIFACT"
 
       - name: Upload Binary Artifact
