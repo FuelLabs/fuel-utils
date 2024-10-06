@@ -19,8 +19,6 @@ env:
   GIT_REPO_OWNER: ${{ github.repository_owner }}
   GIT_REPO: ${{ github.repository }}
   GIT_REPO_NAME: ${{ github.event.repository.name }}
-  AWS_ROLE_ARN: arn:aws:iam::024848458133:role/github_oidc_FuelLabs_fuel-core
-  AWS_ECR_ORG: fuellabs
   CARGO_TERM_COLOR: always
   RUST_VERSION: 1.79.0
   RUST_VERSION_FMT: nightly-2023-10-29
@@ -66,7 +64,7 @@ jobs:
         with:
           crate: cross
 
-      - name: Build fuel-core and fuel-core-keygen
+      - name: Build binaries
         run: |
           cross build --profile=release --target ${{ matrix.job.target }} --manifest-path network-upgrader/Cargo.toml
 
@@ -76,17 +74,17 @@ jobs:
           TARGET: ${{ matrix.job.target }}
         run: |
           # trim refs/tags/ prefix
-          FUEL_CORE_VERSION="${GITHUB_REF#refs/tags/}"
+          BINARIES_VERSION="${GITHUB_REF#refs/tags/}"
           # optionally trim v from tag prefix
-          FUEL_CORE_VERSION="${FUEL_CORE_VERSION#v}"
-          echo "version is: $FUEL_CORE_VERSION"
+          BINARIES_VERSION="${BINARIES_VERSION#v}"
+          echo "version is: $BINARIES_VERSION"
           # setup artifact filename
-          ARTIFACT="fuel-core-$FUEL_CORE_VERSION-${{ env.TARGET }}"
+          ARTIFACT="utils-$BINARIES_VERSION-${{ env.TARGET }}"
           ZIP_FILE_NAME="$ARTIFACT.tar.gz"
           echo "ZIP_FILE_NAME=$ZIP_FILE_NAME" >> $GITHUB_ENV
           # create zip file
           mkdir -pv "$ARTIFACT"
-          cp "target/${{ matrix.job.target }}/release/fuel-core-network-upgrader" "$ARTIFACT"
+          cp "network-upgrader/target/${{ matrix.job.target }}/release/fuel-core-network-upgrader" "$ARTIFACT"
           tar -czvf "$ZIP_FILE_NAME" "$ARTIFACT"
 
       - name: Upload Binary Artifact
