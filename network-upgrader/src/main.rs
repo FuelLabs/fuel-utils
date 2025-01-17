@@ -257,6 +257,7 @@ async fn upgrade_state_transition(
         (*root).into(),
         Default::default(),
     )
+    .with_max_fee_estimation_tolerance(2.0)
     .with_estimation_horizon(10);
     wallet.add_witnesses(&mut builder)?;
     wallet.adjust_for_fee(&mut builder, 0).await?;
