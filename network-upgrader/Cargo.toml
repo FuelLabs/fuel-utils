@@ -1,6 +1,6 @@
 [package]
 name = "fuel-core-network-upgrader"
-version = "0.1.0"
+version = "0.0.3"
 edition = "2021"
 homepage = "https://fuel.network/"
 keywords = ["blockchain", "cryptocurrencies", "fuel-vm", "vm", "utils"]
@@ -22,10 +22,10 @@ aws-config = { version = "1.1.7", features = [
 aws-sdk-kms = "1.37.0"
 k256 = { version = "0.13.3", features = ["ecdsa-core"] }
 clap = { version = "4.5", features = ["derive", "env"] }
-fuels = "0.66.6"
-fuels-core = "0.66.6"
-fuel-core-types = { version = "0.37.0", features = ["serde"] }
-fuel-core-client = "0.37.0"
+fuels = "=0.66.10"
+fuels-core = "=0.66.10"
+fuel-core-types = { version = "=0.40.2", features = ["serde"] }
+fuel-core-client = "=0.40.2"
 postcard = "1"
 serde_json = { version = "1.0", features = ["raw_value"] }
 termion = "4"
