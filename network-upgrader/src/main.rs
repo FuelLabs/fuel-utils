@@ -211,6 +211,7 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
             .with_subsections_number(subsections_number)
             .with_proof_set(proof_set)
             .with_outputs(outputs)
+            .with_max_fee_estimation_tolerance(2.0)
             .with_witnesses(witnesses);
 
         wallet.add_witnesses(&mut builder)?;
