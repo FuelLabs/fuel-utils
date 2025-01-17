@@ -22,6 +22,7 @@ aws-config = { version = "1.1.7", features = [
 aws-sdk-kms = "1.37.0"
 k256 = { version = "0.13.3", features = ["ecdsa-core"] }
 clap = { version = "4.5", features = ["derive", "env"] }
+indicatif = "0.17.9"
 fuels = "=0.66.10"
 fuels-core = "=0.66.10"
 fuel-core-types = { version = "=0.40.2", features = ["serde"] }
