@@ -22,12 +22,14 @@ use fuels::{
 };
 use fuels_core::types::{
     bech32::Bech32Address,
+    transaction::Transaction,
     transaction_builders::TransactionBuilder,
+    tx_status::TxStatus,
 };
+use indicatif::ProgressBar;
 use std::{
     fs,
     path::PathBuf,
-    time::Duration,
 };
 use termion::input::TermRead;
 use upgrader_wallet::UpgraderWallet;
@@ -128,10 +130,20 @@ pub struct Parameters {
     pub url: String,
 }
 
+/// Fetches the current versions of the state transition bytecode and consensus parameters.
+#[derive(Debug, clap::Args)]
+pub struct CurrentVersions {
+    /// The graphql API to the network to get the current versions of
+    /// state transition bytecode and consensus parameters from.
+    #[clap(long = "url", short = 'u', env)]
+    pub url: String,
+}
+
 /// Utilities for interacting with the Fuel network.
 #[derive(Debug, Parser)]
 #[clap(name = "fuel-core-network-upgrader", author, version, about)]
 enum Command {
+    CurrentVersions(CurrentVersions),
     Upgrade(Upgrade),
     Upload(Upload),
     Transfer(Transfer),
@@ -163,12 +175,15 @@ impl Command {
             Command::Upload(cmd) => upload(cmd).await,
             Command::Transfer(cmd) => transfer(cmd).await,
             Command::Parameters(cmd) => parameters(cmd).await,
+            Command::CurrentVersions(cmd) => current_versions(cmd).await,
         }
     }
 }
 
 async fn upload(upload: &Upload) -> anyhow::Result<()> {
     let provider = Provider::connect(upload.url.as_str()).await?;
+
+    let chain_id = provider.chain_id();
     let wallet = create_wallet(upload.aws_kms_key_id.clone(), Some(provider)).await?;
 
     println!("Reading bytecode from `{}`.", upload.path.to_string_lossy());
@@ -176,12 +191,14 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
     let subsections = UploadSubsection::split_bytecode(&bytecode, upload.subsection_size)
         .map_err(|e| anyhow::anyhow!("{:?}", e))?;
 
+    let subsections_len = subsections.len();
     println!(
         "Split bytecode into `{}` subsections where size of each is `{}`. The root of the bytecode is `{}`.",
         subsections.len(),
         upload.subsection_size,
         subsections[0].root
     );
+    let bar = ProgressBar::new(subsections_len as u64);
 
     for (i, subsection) in subsections
         .into_iter()
@@ -189,7 +206,12 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
         .skip(upload.starting_subsection)
     {
         let provider = wallet.provider().unwrap();
-        println!("Processing subsection `{i}`.");
+        bar.println(format!(
+            "Uploading subsection `{i}` of `{total}`.",
+            i = i,
+            total = subsections_len
+        ));
+        bar.inc(1);
 
         let subsection_witness_index = 0;
         let outputs = vec![];
@@ -217,17 +239,41 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
         wallet.add_witnesses(&mut builder)?;
         wallet.adjust_for_fee(&mut builder, 0).await?;
         let tx = builder.build(provider).await?;
+        let tx_id = tx.id(chain_id);
 
-        let result = provider.send_transaction(tx).await?;
-        println!("Subsection `{i}` successfully committed to the network with tx id `{result}`.");
-        // Wait for sentries to update off-chain database.
-        tokio::time::sleep(Duration::from_secs(4)).await;
+        let result = provider.send_transaction_and_await_commit(tx).await?;
+
+        match result {
+            TxStatus::Success { .. } => {
+                println!(
+                    "Subsection `{i}` successfully committed to the network with tx id `{tx_id}`."
+                );
+            }
+            TxStatus::Submitted => {
+                bar.abandon_with_message("an error was detected");
+                anyhow::bail!(
+                    "the transaction `{tx_id}` is submitted and awaiting confirmation."
+                );
+            }
+            TxStatus::SqueezedOut { .. } => {
+                bar.abandon_with_message("an error was detected");
+                anyhow::bail!("subsection `{i}` upload failed. The transaction `{tx_id}` was squeezed out.");
+            }
+            TxStatus::Revert { reason, .. } => {
+                bar.abandon_with_message("an error was detected");
+                anyhow::bail!("subsection `{i}` upload failed. The transaction `{tx_id}` was reverted with reason `{reason}`.");
+            }
+        }
     }
+
+    bar.finish_with_message("All subsections are successfully uploaded.");
 
     Ok(())
 }
 
 async fn upgrade(upgrade: &Upgrade) -> anyhow::Result<()> {
+    current_versions_from_url(upgrade.url.as_str()).await?;
+
     let provider = Provider::connect(upgrade.url.as_str()).await?;
     let wallet = create_wallet(upgrade.aws_kms_key_id.clone(), Some(provider)).await?;
 
@@ -240,6 +286,8 @@ async fn upgrade(upgrade: &Upgrade) -> anyhow::Result<()> {
         }
     }
 
+    current_versions_from_url(upgrade.url.as_str()).await?;
+
     Ok(())
 }
 
@@ -247,7 +295,11 @@ async fn upgrade_state_transition(
     wallet: &UpgraderWallet,
     state_transition: &StateTransition,
 ) -> anyhow::Result<()> {
-    let provider = wallet.provider().unwrap();
+    let provider = wallet
+        .provider()
+        .ok_or(anyhow::anyhow!("Provider is not set."))?;
+
+    let chain_id = provider.chain_id();
     let root = state_transition.root;
     println!(
         "Preparing upgrade of state transition function with the root `{}`.",
@@ -262,12 +314,31 @@ async fn upgrade_state_transition(
     wallet.add_witnesses(&mut builder)?;
     wallet.adjust_for_fee(&mut builder, 0).await?;
     let tx = builder.build(provider).await?;
+    let tx_id = tx.id(chain_id);
 
-    let result = provider.send_transaction(tx).await?;
-    println!(
-        "The state transition function of the network \
-        is successfully upgraded to `{root}` by transaction `{result}`."
-    );
+    let result = provider.send_transaction_and_await_commit(tx).await?;
+
+    match result {
+        TxStatus::Success { .. } => {
+            println!(
+                "The state transition function of the network \
+                is successfully upgraded to `{root}` by transaction `{tx_id}`."
+            );
+        }
+        TxStatus::Submitted => {
+            anyhow::bail!(
+                "the transaction `{tx_id}` is submitted and awaiting confirmation"
+            );
+        }
+        TxStatus::SqueezedOut { .. } => {
+            anyhow::bail!("The transaction `{tx_id}` was squeezed out.");
+        }
+        TxStatus::Revert { reason, .. } => {
+            anyhow::bail!(
+                "the transaction `{tx_id}` was reverted with reason `{reason}`"
+            );
+        }
+    }
 
     Ok(())
 }
@@ -276,7 +347,11 @@ async fn upgrade_consensus_parameters(
     wallet: &UpgraderWallet,
     cmd: &ConsensusParametersCommand,
 ) -> anyhow::Result<()> {
-    let provider = wallet.provider().unwrap();
+    let provider = wallet
+        .provider()
+        .ok_or(anyhow::anyhow!("Provider is not set."))?;
+
+    let chain_id = provider.chain_id();
     println!(
         "Preparing upgrade of consensus parameters from `{}` file.",
         cmd.path.to_string_lossy()
@@ -310,13 +385,31 @@ async fn upgrade_consensus_parameters(
     wallet.add_witnesses(&mut builder)?;
     wallet.adjust_for_fee(&mut builder, 0).await?;
     let tx = builder.build(provider).await?;
+    let tx_id = tx.id(chain_id);
 
-    let client = fuels::client::FuelClient::new(provider.url())?;
-    let result = client.submit_and_await_commit(&tx.into()).await?;
-    println!(
-        "The consensus parameters of the network \
-        are successfully upgraded by transaction `{result:?}`."
-    );
+    let result = provider.send_transaction_and_await_commit(tx).await?;
+
+    match result {
+        TxStatus::Success { .. } => {
+            println!(
+                "The consensus parameters of the network \
+                are successfully upgraded by transaction `{tx_id}`."
+            );
+        }
+        TxStatus::Submitted => {
+            anyhow::bail!(
+                "the transaction `{tx_id}` is submitted and awaiting confirmation"
+            );
+        }
+        TxStatus::SqueezedOut { .. } => {
+            anyhow::bail!("the transaction `{tx_id}` was squeezed out");
+        }
+        TxStatus::Revert { reason, .. } => {
+            anyhow::bail!(
+                "the transaction `{tx_id}` was reverted with reason `{reason}`"
+            );
+        }
+    }
 
     Ok(())
 }
@@ -351,6 +444,26 @@ async fn parameters(parameters: &Parameters) -> anyhow::Result<()> {
     println!("Writing file into `{}`.", parameters.path.to_string_lossy());
     fs::write(&parameters.path, json)?;
     Ok(())
+}
+
+async fn current_versions_from_url(url: &str) -> anyhow::Result<()> {
+    let client = FuelClient::new(url)?;
+    let chain_info = client.chain_info().await?;
+    let stf_version = chain_info
+        .latest_block
+        .header
+        .state_transition_bytecode_version;
+    let consensus_params_version =
+        chain_info.latest_block.header.consensus_parameters_version;
+    println!(
+        "The current state transition bytecode version is `{stf_version}` \
+        and the consensus parameters version is `{consensus_params_version}`."
+    );
+    Ok(())
+}
+
+async fn current_versions(current_versions: &CurrentVersions) -> anyhow::Result<()> {
+    current_versions_from_url(&current_versions.url).await
 }
 
 #[tokio::main]
