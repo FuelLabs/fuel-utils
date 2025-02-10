@@ -252,16 +252,16 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
             TxStatus::Submitted => {
                 bar.abandon_with_message("an error was detected");
                 anyhow::bail!(
-                    "The transaction `{tx_id}` is submitted and awaiting confirmation."
+                    "the transaction `{tx_id}` is submitted and awaiting confirmation."
                 );
             }
             TxStatus::SqueezedOut { .. } => {
                 bar.abandon_with_message("an error was detected");
-                anyhow::bail!("Subsection `{i}` upload failed. The transaction `{tx_id}` was squeezed out.");
+                anyhow::bail!("subsection `{i}` upload failed. The transaction `{tx_id}` was squeezed out.");
             }
             TxStatus::Revert { reason, .. } => {
                 bar.abandon_with_message("an error was detected");
-                anyhow::bail!("Subsection `{i}` upload failed. The transaction `{tx_id}` was reverted with reason `{reason}`.");
+                anyhow::bail!("subsection `{i}` upload failed. The transaction `{tx_id}` was reverted with reason `{reason}`.");
             }
         }
     }
@@ -327,7 +327,7 @@ async fn upgrade_state_transition(
         }
         TxStatus::Submitted => {
             anyhow::bail!(
-                "The transaction `{tx_id}` is submitted and awaiting confirmation."
+                "the transaction `{tx_id}` is submitted and awaiting confirmation"
             );
         }
         TxStatus::SqueezedOut { .. } => {
@@ -335,7 +335,7 @@ async fn upgrade_state_transition(
         }
         TxStatus::Revert { reason, .. } => {
             anyhow::bail!(
-                "The transaction `{tx_id}` was reverted with reason `{reason}`."
+                "the transaction `{tx_id}` was reverted with reason `{reason}`"
             );
         }
     }
@@ -398,15 +398,15 @@ async fn upgrade_consensus_parameters(
         }
         TxStatus::Submitted => {
             anyhow::bail!(
-                "The transaction `{tx_id}` is submitted and awaiting confirmation."
+                "the transaction `{tx_id}` is submitted and awaiting confirmation"
             );
         }
         TxStatus::SqueezedOut { .. } => {
-            anyhow::bail!("The transaction `{tx_id}` was squeezed out.");
+            anyhow::bail!("the transaction `{tx_id}` was squeezed out");
         }
         TxStatus::Revert { reason, .. } => {
             anyhow::bail!(
-                "The transaction `{tx_id}` was reverted with reason `{reason}`."
+                "the transaction `{tx_id}` was reverted with reason `{reason}`"
             );
         }
     }
