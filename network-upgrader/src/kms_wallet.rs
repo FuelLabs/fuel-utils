@@ -182,7 +182,22 @@ impl Signer for KMSWallet {
 }
 
 // Same implementation as `WalletUnlocked` of Rust SDK
+#[async_trait::async_trait]
 impl ViewOnlyAccount for KMSWallet {
+    async fn get_asset_inputs_for_amount(
+        &self,
+        asset_id: AssetId,
+        amount: u64,
+        excluded_coins: Option<Vec<CoinTypeId>>,
+    ) -> Result<Vec<Input>, Error> {
+        Ok(self
+            .get_spendable_resources(asset_id, amount, excluded_coins)
+            .await?
+            .into_iter()
+            .map(Input::resource_signed)
+            .collect::<Vec<Input>>())
+    }
+
     fn address(&self) -> &Bech32Address {
         self.wallet.address()
     }
@@ -199,24 +214,6 @@ impl ViewOnlyAccount for KMSWallet {
 // Same implementation as `WalletUnlocked` of Rust SDK
 #[async_trait::async_trait]
 impl Account for KMSWallet {
-    /// Returns a vector consisting of `Input::Coin`s and `Input::Message`s for the given
-    /// asset ID and amount. The `witness_index` is the position of the witness (signature)
-    /// in the transaction's list of witnesses. In the validation process, the node will
-    /// use the witness at this index to validate the coins returned by this method.
-    async fn get_asset_inputs_for_amount(
-        &self,
-        asset_id: AssetId,
-        amount: u64,
-        excluded_coins: Option<Vec<CoinTypeId>>,
-    ) -> Result<Vec<Input>, Error> {
-        Ok(self
-            .get_spendable_resources(asset_id, amount, excluded_coins)
-            .await?
-            .into_iter()
-            .map(Input::resource_signed)
-            .collect::<Vec<Input>>())
-    }
-
     fn add_witnesses<Tb: TransactionBuilder>(&self, tb: &mut Tb) -> Result<(), Error> {
         tb.add_signer(self.clone())?;
 

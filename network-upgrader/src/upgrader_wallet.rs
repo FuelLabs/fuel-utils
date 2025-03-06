@@ -61,24 +61,8 @@ impl UpgraderWallet {
     }
 }
 
-impl ViewOnlyAccount for UpgraderWallet {
-    fn address(&self) -> &Bech32Address {
-        match self {
-            UpgraderWallet::Kms(wallet) => wallet.address(),
-            UpgraderWallet::WalletUnlocked(wallet) => wallet.address(),
-        }
-    }
-
-    fn try_provider(&self) -> Result<&Provider, Error> {
-        match self {
-            UpgraderWallet::Kms(wallet) => wallet.try_provider(),
-            UpgraderWallet::WalletUnlocked(wallet) => wallet.try_provider(),
-        }
-    }
-}
-
 #[async_trait::async_trait]
-impl Account for UpgraderWallet {
+impl ViewOnlyAccount for UpgraderWallet {
     async fn get_asset_inputs_for_amount(
         &self,
         asset_id: AssetId,
@@ -99,6 +83,23 @@ impl Account for UpgraderWallet {
         }
     }
 
+    fn address(&self) -> &Bech32Address {
+        match self {
+            UpgraderWallet::Kms(wallet) => wallet.address(),
+            UpgraderWallet::WalletUnlocked(wallet) => wallet.address(),
+        }
+    }
+
+    fn try_provider(&self) -> Result<&Provider, Error> {
+        match self {
+            UpgraderWallet::Kms(wallet) => wallet.try_provider(),
+            UpgraderWallet::WalletUnlocked(wallet) => wallet.try_provider(),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Account for UpgraderWallet {
     fn add_witnesses<Tb: TransactionBuilder>(&self, tb: &mut Tb) -> Result<(), Error> {
         match self {
             UpgraderWallet::Kms(wallet) => wallet.add_witnesses(tb),
