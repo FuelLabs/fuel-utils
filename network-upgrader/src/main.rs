@@ -12,7 +12,10 @@ use fuel_core_types::{
     },
 };
 use fuels::{
-    accounts::Account,
+    accounts::{
+        Account,
+        ViewOnlyAccount,
+    },
     crypto::SecretKey,
     prelude::Provider,
     types::transaction_builders::{
@@ -183,7 +186,7 @@ impl Command {
 async fn upload(upload: &Upload) -> anyhow::Result<()> {
     let provider = Provider::connect(upload.url.as_str()).await?;
 
-    let chain_id = provider.chain_id();
+    let chain_id = provider.chain_info().await?.consensus_parameters.chain_id();
     let wallet = create_wallet(upload.aws_kms_key_id.clone(), Some(provider)).await?;
 
     println!("Reading bytecode from `{}`.", upload.path.to_string_lossy());
@@ -299,7 +302,7 @@ async fn upgrade_state_transition(
         .provider()
         .ok_or(anyhow::anyhow!("Provider is not set."))?;
 
-    let chain_id = provider.chain_id();
+    let chain_id = provider.chain_info().await?.consensus_parameters.chain_id();
     let root = state_transition.root;
     println!(
         "Preparing upgrade of state transition function with the root `{}`.",
@@ -351,7 +354,7 @@ async fn upgrade_consensus_parameters(
         .provider()
         .ok_or(anyhow::anyhow!("Provider is not set."))?;
 
-    let chain_id = provider.chain_id();
+    let chain_id = provider.chain_info().await?.consensus_parameters.chain_id();
     println!(
         "Preparing upgrade of consensus parameters from `{}` file.",
         cmd.path.to_string_lossy()
@@ -416,7 +419,7 @@ async fn upgrade_consensus_parameters(
 
 async fn transfer(transfer: &Transfer) -> anyhow::Result<()> {
     let provider = Provider::connect(transfer.url.as_str()).await?;
-    let consensus_parameters = provider.consensus_parameters().clone();
+    let consensus_parameters = provider.consensus_parameters().await?.clone();
     let wallet = create_wallet(transfer.aws_kms_key_id.clone(), Some(provider)).await?;
     let recipient: fuels::types::Address = (*transfer.recipient).into();
     let bench_recipient = Bech32Address::from(recipient);
