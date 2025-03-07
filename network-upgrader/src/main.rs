@@ -29,7 +29,10 @@ use fuels_core::types::{
     transaction_builders::TransactionBuilder,
     tx_status::TxStatus,
 };
-use indicatif::ProgressBar;
+use indicatif::{
+    ProgressBar,
+    ProgressStyle,
+};
 use std::{
     fs,
     path::PathBuf,
@@ -203,13 +206,15 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
     );
     let bar = ProgressBar::new(subsections_len as u64);
 
+    bar.set_style(ProgressStyle::default_bar().template("{msg}\n{bar} {pos}/{len}")?);
+
     for (i, subsection) in subsections
         .into_iter()
         .enumerate()
         .skip(upload.starting_subsection)
     {
         let provider = wallet.provider().unwrap();
-        bar.println(format!(
+        bar.set_message(format!(
             "Uploading subsection `{i}` of `{total}`.",
             i = i,
             total = subsections_len
@@ -248,9 +253,9 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
 
         match result {
             TxStatus::Success { .. } => {
-                println!(
+                bar.set_message(format!(
                     "Subsection `{i}` successfully committed to the network with tx id `{tx_id}`."
-                );
+                ));
             }
             TxStatus::Submitted => {
                 bar.abandon_with_message("an error was detected");
@@ -289,6 +294,8 @@ async fn upgrade(upgrade: &Upgrade) -> anyhow::Result<()> {
         }
     }
 
+    // the `chain_info` is cached by the sdk, so give it time to update
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     current_versions_from_url(upgrade.url.as_str()).await?;
 
     Ok(())
