@@ -31,3 +31,6 @@ postcard = "1"
 serde_json = { version = "1.0", features = ["raw_value"] }
 termion = "4"
 tokio = "1"
+
+# need to pin ring to 0.17.12 due to compilation failure on x86
+ring = "=0.17.12"
