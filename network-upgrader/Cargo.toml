@@ -1,6 +1,6 @@
 [package]
 name = "fuel-core-network-upgrader"
-version = "0.0.5-rc.1"
+version = "0.0.5-rc.2"
 edition = "2021"
 homepage = "https://fuel.network/"
 keywords = ["blockchain", "cryptocurrencies", "fuel-vm", "vm", "utils"]

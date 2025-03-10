@@ -204,7 +204,7 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
         upload.subsection_size,
         subsections[0].root
     );
-    let bar = ProgressBar::new(subsections_len as u64);
+    let bar = ProgressBar::new((subsections_len - upload.starting_subsection) as u64);
 
     bar.set_style(ProgressStyle::default_bar().template("{msg}\n{bar} {pos}/{len}")?);
 
