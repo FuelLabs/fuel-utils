@@ -40,8 +40,6 @@ use std::{
 use termion::input::TermRead;
 use upgrader_wallet::UpgraderWallet;
 
-use ring as _;
-
 mod kms_wallet;
 mod upgrader_wallet;
 

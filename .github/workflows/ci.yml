@@ -6,9 +6,9 @@ on:
     branches:
       - master
   pull_request:
-    types: [ opened, synchronize, reopened, labeled, unlabeled ]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   release:
-    types: [ published ]
+    types: [published]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -69,7 +69,8 @@ jobs:
       - name: Build binaries
         run: |
           cross build --profile=release --target ${{ matrix.job.target }} --manifest-path network-upgrader/Cargo.toml --locked
-          cross build --profile=release --target ${{ matrix.job.target }} --manifest-path block-extractor/Cargo.toml
+          # cross doesn't support compilation of `ring` v0.17.13 due to unsupported assembly instructions
+          # cross build --profile=release --target ${{ matrix.job.target }} --manifest-path block-extractor/Cargo.toml
 
       - name: Prepare Binary Artifact
         env:

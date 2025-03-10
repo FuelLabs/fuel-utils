@@ -1473,7 +1473,6 @@ dependencies = [
  "indicatif",
  "k256",
  "postcard",
- "ring",
  "serde_json",
  "termion",
  "tokio",
