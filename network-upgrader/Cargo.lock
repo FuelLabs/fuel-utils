@@ -28,17 +28,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "512761e0bb2578dd7380c6baaa0f4ce03e84f95e960231d1dec8bf4d7d6e2627"
 
 [[package]]
-name = "aes"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b169f7a6d4742236a0a00c541b845991d0ac43e546831af1249753ab4c3aa3a0"
-dependencies = [
- "cfg-if",
- "cipher",
- "cpufeatures",
-]
-
-[[package]]
 name = "ahash"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -143,6 +132,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcfed56ad506cb2c684a14971b8861fdc3baaaae314b9e5f9bb532cbe3ba7a4f"
 
 [[package]]
+name = "arrayvec"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
+
+[[package]]
 name = "async-trait"
 version = "0.1.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -160,6 +155,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8cf2bce30dfe09ef0bfaef228b9d414faaf7e563035494d7fe092dba54b300f4"
 dependencies = [
  "critical-section",
+]
+
+[[package]]
+name = "auto_impl"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e12882f59de5360c748c4cbf569a042d5fb0eb515f7bea9c1f470b47f6ffbd73"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.99",
 ]
 
 [[package]]
@@ -232,7 +238,7 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "tracing",
- "uuid 1.15.1",
+ "uuid",
 ]
 
 [[package]]
@@ -573,6 +579,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a8241f3ebb85c056b509d4327ad0358fbbba6ffb340bf388f26350aeda225b1"
 
 [[package]]
+name = "bitcoin-io"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b47c4ab7a93edb0c7198c5535ed9b52b63095f4e9b45279c6736cec4b856baf"
+
+[[package]]
+name = "bitcoin_hashes"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb18c03d0db0247e147a21a6faafd5a7eb851c743db062de72018b6b7e8e4d16"
+dependencies = [
+ "bitcoin-io",
+ "hex-conservative",
+]
+
+[[package]]
 name = "bitflags"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -677,16 +699,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cipher"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "773f3b9af64447d2ce9850330c473515014aa235e6a783b02db81ff39e4a3dad"
-dependencies = [
- "crypto-common",
- "inout",
-]
-
-[[package]]
 name = "clap"
 version = "4.5.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -758,7 +770,7 @@ dependencies = [
  "coins-bip32",
  "hmac",
  "once_cell",
- "pbkdf2 0.12.2",
+ "pbkdf2",
  "rand",
  "sha2",
  "thiserror 1.0.69",
@@ -904,15 +916,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ctr"
-version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0369ee1ad671834580515889b80f2ea915f23b8be8d0daa4bbaf2ac5c7590835"
-dependencies = [
- "cipher",
-]
-
-[[package]]
 name = "curve25519-dalek"
 version = "4.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -925,6 +928,7 @@ dependencies = [
  "fiat-crypto",
  "rustc_version",
  "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -1035,6 +1039,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f55bf8e7b65898637379c1b74eb1551107c8294ed26d855ceb9fd1a09cfc9bc0"
 dependencies = [
  "const-oid",
+ "pem-rfc7468",
  "zeroize",
 ]
 
@@ -1151,6 +1156,8 @@ version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "115531babc129696a58c64a4fef0a8bf9e9698629fb97e9e40767d235cfbcd53"
 dependencies = [
+ "pkcs8",
+ "serde",
  "signature",
 ]
 
@@ -1162,8 +1169,10 @@ checksum = "4a3daa8e81a3963a60642bcc1f90a670680bd4a77535faa384e9d1c79d620871"
 dependencies = [
  "curve25519-dalek",
  "ed25519",
+ "serde",
  "sha2",
  "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -1196,6 +1205,7 @@ dependencies = [
  "ff",
  "generic-array",
  "group",
+ "pem-rfc7468",
  "pkcs8",
  "rand_core",
  "sec1",
@@ -1275,28 +1285,6 @@ checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
  "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "eth-keystore"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fda3bf123be441da5260717e0661c25a2fd9cb2b2c1d20bf2e05580047158ab"
-dependencies = [
- "aes",
- "ctr",
- "digest",
- "hex",
- "hmac",
- "pbkdf2 0.11.0",
- "rand",
- "scrypt",
- "serde",
- "serde_json",
- "sha2",
- "sha3",
- "thiserror 1.0.69",
- "uuid 0.8.2",
 ]
 
 [[package]]
@@ -1391,7 +1379,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd48cb44034f02a922df95889a888948e62258edb1910bcf7fe79ee5c92b412f"
 dependencies = [
  "bitflags",
- "fuel-types",
+ "fuel-types 0.59.2",
+ "serde",
+ "strum 0.24.1",
+]
+
+[[package]]
+name = "fuel-asm"
+version = "0.60.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4702e63db53a308a4bb57ba21e8f7dcb08f1146a9b34fce06d964306ed3e1497"
+dependencies = [
+ "bitflags",
+ "fuel-types 0.60.0",
  "serde",
  "strum 0.24.1",
 ]
@@ -1406,7 +1406,7 @@ dependencies = [
  "bech32",
  "derivative",
  "fuel-core-storage",
- "fuel-core-types",
+ "fuel-core-types 0.41.8",
  "itertools 0.12.1",
  "postcard",
  "rand",
@@ -1427,7 +1427,32 @@ dependencies = [
  "cynic",
  "derive_more 0.99.19",
  "eventsource-client",
- "fuel-core-types",
+ "fuel-core-types 0.41.8",
+ "futures",
+ "hex",
+ "hyper-rustls 0.24.2",
+ "itertools 0.12.1",
+ "reqwest",
+ "schemafy_lib",
+ "serde",
+ "serde_json",
+ "tai64",
+ "thiserror 1.0.69",
+ "tracing",
+]
+
+[[package]]
+name = "fuel-core-client"
+version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed1d84902418db27d5576721be9c50df9592649dabb6f9e878d388e4cb9ef940"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "cynic",
+ "derive_more 0.99.19",
+ "eventsource-client",
+ "fuel-core-types 0.42.0",
  "futures",
  "hex",
  "hyper-rustls 0.24.2",
@@ -1466,8 +1491,8 @@ dependencies = [
  "aws-config",
  "aws-sdk-kms",
  "clap",
- "fuel-core-client",
- "fuel-core-types",
+ "fuel-core-client 0.42.0",
+ "fuel-core-types 0.42.0",
  "fuels",
  "fuels-core",
  "indicatif",
@@ -1489,7 +1514,7 @@ dependencies = [
  "fuel-core-chain-config",
  "fuel-core-services",
  "fuel-core-storage",
- "fuel-core-types",
+ "fuel-core-types 0.41.8",
  "serde",
  "serde_json",
  "tokio",
@@ -1522,8 +1547,8 @@ dependencies = [
  "anyhow",
  "derive_more 0.99.19",
  "enum-iterator",
- "fuel-core-types",
- "fuel-vm",
+ "fuel-core-types 0.41.8",
+ "fuel-vm 0.59.2",
  "impl-tools",
  "itertools 0.12.1",
  "num_enum",
@@ -1545,9 +1570,29 @@ dependencies = [
  "bs58",
  "derivative",
  "derive_more 0.99.19",
- "fuel-vm",
+ "fuel-vm 0.59.2",
  "k256",
  "rand",
+ "secrecy",
+ "serde",
+ "tai64",
+ "zeroize",
+]
+
+[[package]]
+name = "fuel-core-types"
+version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41490f79b4f2679a4ae30f05593b59480da812a6b88b0cc4bb2c5ce3270af4b6"
+dependencies = [
+ "anyhow",
+ "bs58",
+ "derive_more 0.99.19",
+ "ed25519",
+ "ed25519-dalek",
+ "educe",
+ "fuel-vm 0.60.0",
+ "k256",
  "secrecy",
  "serde",
  "tai64",
@@ -1564,12 +1609,33 @@ dependencies = [
  "coins-bip39",
  "ecdsa",
  "ed25519-dalek",
- "fuel-types",
+ "fuel-types 0.59.2",
  "k256",
  "lazy_static",
  "p256",
  "rand",
- "secp256k1",
+ "secp256k1 0.29.1",
+ "serde",
+ "sha2",
+ "zeroize",
+]
+
+[[package]]
+name = "fuel-crypto"
+version = "0.60.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b478d21160fa528667ca477b82e2426efa5ac226a7b6fce67987d62f1b041cac"
+dependencies = [
+ "base64ct",
+ "coins-bip32",
+ "coins-bip39",
+ "ecdsa",
+ "ed25519-dalek",
+ "fuel-types 0.60.0",
+ "k256",
+ "p256",
+ "rand",
+ "secp256k1 0.30.0",
  "serde",
  "sha2",
  "zeroize",
@@ -1588,6 +1654,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "fuel-derive"
+version = "0.60.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e0b24c724f47a73f021dae315e5d2b5aec03ba6b9ef9d66377106a20a5fdcde"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.99",
+ "synstructure",
+]
+
+[[package]]
 name = "fuel-merkle"
 version = "0.59.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1595,7 +1673,22 @@ checksum = "1e591b5056b011c943c5a40acda4ce568bec745111a15aed986f1e9bf2c0bded"
 dependencies = [
  "derive_more 0.99.19",
  "digest",
- "fuel-storage",
+ "fuel-storage 0.59.2",
+ "hashbrown 0.13.2",
+ "hex",
+ "serde",
+ "sha2",
+]
+
+[[package]]
+name = "fuel-merkle"
+version = "0.60.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d3a023169ea7231b6bd107c513b8b9a7ff849df5ca023c120b348da234ec20a"
+dependencies = [
+ "derive_more 0.99.19",
+ "digest",
+ "fuel-storage 0.60.0",
  "hashbrown 0.13.2",
  "hex",
  "serde",
@@ -1609,6 +1702,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ada067d4aaff1acf1175a00edb1c3efbeccf7e2fb414270a2d29eedb2f207c97"
 
 [[package]]
+name = "fuel-storage"
+version = "0.60.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8425dc32f86e2d6082126ee34998a9556306c6a79d95b85a62a05b439ff9bb19"
+
+[[package]]
 name = "fuel-tx"
 version = "0.59.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1617,10 +1716,32 @@ dependencies = [
  "bitflags",
  "derive_more 1.0.0",
  "educe",
- "fuel-asm",
- "fuel-crypto",
- "fuel-merkle",
- "fuel-types",
+ "fuel-asm 0.59.2",
+ "fuel-crypto 0.59.2",
+ "fuel-merkle 0.59.2",
+ "fuel-types 0.59.2",
+ "hashbrown 0.14.5",
+ "itertools 0.10.5",
+ "postcard",
+ "rand",
+ "serde",
+ "strum 0.24.1",
+ "strum_macros 0.24.3",
+]
+
+[[package]]
+name = "fuel-tx"
+version = "0.60.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db32cb7845a7462b02a8406303bfc5387589387418b5f4817a01bd5d3d16b287"
+dependencies = [
+ "bitflags",
+ "derive_more 1.0.0",
+ "educe",
+ "fuel-asm 0.60.0",
+ "fuel-crypto 0.60.0",
+ "fuel-merkle 0.60.0",
+ "fuel-types 0.60.0",
  "hashbrown 0.14.5",
  "itertools 0.10.5",
  "postcard",
@@ -1636,9 +1757,20 @@ version = "0.59.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db2cbad4962ba02b683f33686eb79c3002dde3791f3c71a4465d46601caba8b6"
 dependencies = [
- "fuel-derive",
+ "fuel-derive 0.59.2",
  "hex",
  "rand",
+ "serde",
+]
+
+[[package]]
+name = "fuel-types"
+version = "0.60.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "284f4e00bb184c4d24e7fe12f5a698612c384f2b9354eba4478bb022b4fb0a33"
+dependencies = [
+ "fuel-derive 0.60.0",
+ "hex",
  "serde",
 ]
 
@@ -1655,12 +1787,12 @@ dependencies = [
  "derive_more 0.99.19",
  "educe",
  "ethnum",
- "fuel-asm",
- "fuel-crypto",
- "fuel-merkle",
- "fuel-storage",
- "fuel-tx",
- "fuel-types",
+ "fuel-asm 0.59.2",
+ "fuel-crypto 0.59.2",
+ "fuel-merkle 0.59.2",
+ "fuel-storage 0.59.2",
+ "fuel-tx 0.59.2",
+ "fuel-types 0.59.2",
  "hashbrown 0.14.5",
  "itertools 0.10.5",
  "libm",
@@ -1678,14 +1810,46 @@ dependencies = [
 ]
 
 [[package]]
-name = "fuels"
-version = "0.70.4"
+name = "fuel-vm"
+version = "0.60.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcb6e7cd2ad4ed7c0ee76d1c4db718229c8e984ed78c6d343c20b740e4bdf464"
+checksum = "a07bfdb498244dc1e82de4e396a6c1f4183fd05355454e4847a727c9b5fb3331"
 dependencies = [
- "fuel-core-client",
- "fuel-crypto",
- "fuel-tx",
+ "async-trait",
+ "backtrace",
+ "bitflags",
+ "derive_more 0.99.19",
+ "educe",
+ "ethnum",
+ "fuel-asm 0.60.0",
+ "fuel-crypto 0.60.0",
+ "fuel-merkle 0.60.0",
+ "fuel-storage 0.60.0",
+ "fuel-tx 0.60.0",
+ "fuel-types 0.60.0",
+ "hashbrown 0.14.5",
+ "itertools 0.10.5",
+ "libm",
+ "paste",
+ "percent-encoding",
+ "primitive-types",
+ "serde",
+ "serde_with",
+ "sha3",
+ "static_assertions",
+ "strum 0.24.1",
+ "substrate-bn",
+]
+
+[[package]]
+name = "fuels"
+version = "0.71.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a895dd24adef0a5b0d4ed62a4f356301cc43872a1d4b41e201aa84b21f0a361"
+dependencies = [
+ "fuel-core-client 0.41.8",
+ "fuel-crypto 0.59.2",
+ "fuel-tx 0.59.2",
  "fuels-accounts",
  "fuels-core",
  "fuels-macros",
@@ -1695,22 +1859,23 @@ dependencies = [
 
 [[package]]
 name = "fuels-accounts"
-version = "0.70.4"
+version = "0.71.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7c78ffa4004a7f040f361c1161856e29a4cd2497f9d1372268ddd96e3495db8"
+checksum = "b90ff98f435a14c89ccc2289d00a8eba997db0a6363beb1260a570e5f82e7c05"
 dependencies = [
  "async-trait",
+ "aws-config",
+ "aws-sdk-kms",
  "chrono",
  "cynic",
- "elliptic-curve",
- "eth-keystore",
- "fuel-core-client",
- "fuel-core-types",
- "fuel-crypto",
- "fuel-tx",
- "fuel-types",
+ "fuel-core-client 0.41.8",
+ "fuel-core-types 0.41.8",
+ "fuel-crypto 0.59.2",
+ "fuel-tx 0.59.2",
+ "fuel-types 0.59.2",
  "fuels-core",
  "itertools 0.12.1",
+ "k256",
  "rand",
  "semver",
  "tai64",
@@ -1721,9 +1886,9 @@ dependencies = [
 
 [[package]]
 name = "fuels-code-gen"
-version = "0.70.4"
+version = "0.71.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bf4d3b23d82278e025201692a084facd3cb1bdae9d36266eabb035d5f401830"
+checksum = "d6066e7b16b7fdad682b0b40d36050d2d9c22e8542fb5314d7377f82933893a5"
 dependencies = [
  "Inflector",
  "fuel-abi-types",
@@ -1737,26 +1902,28 @@ dependencies = [
 
 [[package]]
 name = "fuels-core"
-version = "0.70.4"
+version = "0.71.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2358119bb96e47034a6fb1198a9ac9f1fb808fed6a1641803dce82ca938a370a"
+checksum = "3df160d6e944601ecf4d491a6a50f9e3bf577a3b1b663973237004a29006ca0a"
 dependencies = [
  "async-trait",
+ "auto_impl",
  "bech32",
  "chrono",
  "fuel-abi-types",
- "fuel-asm",
+ "fuel-asm 0.59.2",
  "fuel-core-chain-config",
- "fuel-core-client",
- "fuel-core-types",
- "fuel-crypto",
- "fuel-tx",
- "fuel-types",
- "fuel-vm",
+ "fuel-core-client 0.41.8",
+ "fuel-core-types 0.41.8",
+ "fuel-crypto 0.59.2",
+ "fuel-tx 0.59.2",
+ "fuel-types 0.59.2",
+ "fuel-vm 0.59.2",
  "fuels-macros",
  "hex",
  "itertools 0.12.1",
  "postcard",
+ "rand",
  "serde",
  "serde_json",
  "sha2",
@@ -1766,9 +1933,9 @@ dependencies = [
 
 [[package]]
 name = "fuels-macros"
-version = "0.70.4"
+version = "0.71.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41ffd238a877872581fb25af93f54254f3b737af99f65863fdf783655b659eee"
+checksum = "e73afb530bb6af53d74f5eda8a7833d9d91914bfc7906fa14d47a6b7931dd50c"
 dependencies = [
  "fuels-code-gen",
  "itertools 0.12.1",
@@ -1779,15 +1946,15 @@ dependencies = [
 
 [[package]]
 name = "fuels-programs"
-version = "0.70.4"
+version = "0.71.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3a0133eee4004a6388821aa65b40062b2a13e8668cdc923717d2fc875ad1554"
+checksum = "2d33bf96e80e546c39833db300d960433316107d0d6b5cadb21c0a775da4e763"
 dependencies = [
  "async-trait",
  "fuel-abi-types",
- "fuel-asm",
- "fuel-tx",
- "fuel-types",
+ "fuel-asm 0.59.2",
+ "fuel-tx 0.59.2",
+ "fuel-types 0.59.2",
  "fuels-accounts",
  "fuels-core",
  "itertools 0.12.1",
@@ -1798,18 +1965,18 @@ dependencies = [
 
 [[package]]
 name = "fuels-test-helpers"
-version = "0.70.4"
+version = "0.71.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "415fe33e69a75bfe13f91ab660376de62d5e1b98e852d1ab946fa0077e0c0e1a"
+checksum = "71ecca10907654d0854520f9a330cad90be91041022171dd92ff58a9925c48b3"
 dependencies = [
  "fuel-core-chain-config",
- "fuel-core-client",
+ "fuel-core-client 0.41.8",
  "fuel-core-poa",
  "fuel-core-services",
- "fuel-core-types",
- "fuel-crypto",
- "fuel-tx",
- "fuel-types",
+ "fuel-core-types 0.41.8",
+ "fuel-crypto 0.59.2",
+ "fuel-tx 0.59.2",
+ "fuel-types 0.59.2",
  "fuels-accounts",
  "fuels-core",
  "futures",
@@ -2049,6 +2216,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "hex-conservative"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5313b072ce3c597065a808dbf612c4c8e8590bdbf8b579508bf7a762c5eae6cd"
+dependencies = [
+ "arrayvec",
 ]
 
 [[package]]
@@ -2474,15 +2650,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "inout"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "879f10e63c20629ecabbb64a8010319738c66a5cd0c29b02d63d272b03751d01"
-dependencies = [
- "generic-array",
-]
-
-[[package]]
 name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2842,21 +3009,21 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pbkdf2"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83a0692ec44e4cf1ef28ca317f14f8f07da2d95ec3fa01f86e4467b725e60917"
-dependencies = [
- "digest",
-]
-
-[[package]]
-name = "pbkdf2"
 version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8ed6a7761f76e3b9f92dfb0a60a6a6477c61024b775147ff0973a02653abaf2"
 dependencies = [
  "digest",
  "hmac",
+]
+
+[[package]]
+name = "pem-rfc7468"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88b39c9bfcfc231068454382784bb460aae594343fb030d46e9f50a645418412"
+dependencies = [
+ "base64ct",
 ]
 
 [[package]]
@@ -3444,15 +3611,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
-name = "salsa20"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97a22f5af31f73a954c10289c93e8a50cc23d971e80ee446f1f6f7137a088213"
-dependencies = [
- "cipher",
-]
-
-[[package]]
 name = "schannel"
 version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3494,18 +3652,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
-name = "scrypt"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f9e24d2b632954ded8ab2ef9fea0a0c769ea56ea98bddbafbad22caeeadf45d"
-dependencies = [
- "hmac",
- "pbkdf2 0.11.0",
- "salsa20",
- "sha2",
-]
-
-[[package]]
 name = "sct"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3535,6 +3681,17 @@ version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9465315bc9d4566e1724f0fffcbcc446268cb522e60f9a27bcded6b19c108113"
 dependencies = [
+ "rand",
+ "secp256k1-sys",
+]
+
+[[package]]
+name = "secp256k1"
+version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b50c5943d326858130af85e049f2661ba3c78b26589b8ab98e65e80ae44a1252"
+dependencies = [
+ "bitcoin_hashes",
  "rand",
  "secp256k1-sys",
 ]
@@ -4252,16 +4409,6 @@ name = "utf8parse"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
-
-[[package]]
-name = "uuid"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
-dependencies = [
- "getrandom",
- "serde",
-]
 
 [[package]]
 name = "uuid"
