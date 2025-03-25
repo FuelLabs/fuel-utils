@@ -7,6 +7,8 @@ use aws_sdk_kms::{
 };
 use fuels::{
     accounts::{
+        Account,
+        ViewOnlyAccount,
         provider::Provider,
         signers::kms::{
             self,
@@ -16,8 +18,6 @@ use fuels::{
             Unlocked,
             Wallet,
         },
-        Account,
-        ViewOnlyAccount,
     },
     crypto::{
         Message,
@@ -25,6 +25,7 @@ use fuels::{
         Signature,
     },
     types::{
+        AssetId,
         bech32::{
             Bech32Address,
             FUEL_BECH32_HRP,
@@ -33,7 +34,6 @@ use fuels::{
         errors::Error,
         input::Input,
         transaction_builders::TransactionBuilder,
-        AssetId,
     },
 };
 use fuels_core::traits::Signer;
@@ -197,7 +197,7 @@ impl ViewOnlyAccount for KMSWallet {
     async fn get_asset_inputs_for_amount(
         &self,
         asset_id: AssetId,
-        amount: u64,
+        amount: u128,
         excluded_coins: Option<Vec<CoinTypeId>>,
     ) -> Result<Vec<Input>, Error> {
         Ok(self

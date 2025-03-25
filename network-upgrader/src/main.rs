@@ -265,12 +265,28 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
             }
             TxStatus::SqueezedOut { .. } => {
                 bar.abandon_with_message("an error was detected");
-                anyhow::bail!("subsection `{i}` upload failed. The transaction `{tx_id}` was squeezed out.");
+                anyhow::bail!(
+                    "subsection `{i}` upload failed. The transaction `{tx_id}` was squeezed out."
+                );
             }
-            TxStatus::Revert(revert_status) => {
-                let reason = revert_status.reason;
+            TxStatus::Failure(failure_status) => {
+                let reason = failure_status.reason;
                 bar.abandon_with_message("an error was detected");
-                anyhow::bail!("subsection `{i}` upload failed. The transaction `{tx_id}` was reverted with reason `{reason}`.");
+                anyhow::bail!(
+                    "subsection `{i}` upload failed. The transaction `{tx_id}` was reverted with reason `{reason}`."
+                );
+            }
+            TxStatus::PreconfirmationSuccess { .. } => {
+                bar.set_message(format!(
+                    "Subsection `{i}` successfully committed to the network with tx id `{tx_id}`."
+                ));
+            }
+            TxStatus::PreconfirmationFailure(failure_status) => {
+                let reason = failure_status.reason;
+                bar.abandon_with_message("an error was detected");
+                anyhow::bail!(
+                    "subsection `{i}` upload failed. The transaction `{tx_id}` was reverted with reason `{reason}`."
+                );
             }
         }
     }
@@ -342,10 +358,19 @@ async fn upgrade_state_transition(
         TxStatus::SqueezedOut { .. } => {
             anyhow::bail!("The transaction `{tx_id}` was squeezed out.");
         }
-        TxStatus::Revert(revert_status) => {
-            let reason = revert_status.reason;
+        TxStatus::Failure(failure_status) => {
+            let reason = failure_status.reason;
             anyhow::bail!(
                 "the transaction `{tx_id}` was reverted with reason `{reason}`"
+            );
+        }
+        TxStatus::PreconfirmationSuccess { .. } => {
+            anyhow::bail!("the transaction `{tx_id}` was preconfirmed successfully");
+        }
+        TxStatus::PreconfirmationFailure(failure_status) => {
+            let reason = failure_status.reason;
+            anyhow::bail!(
+                "the transaction `{tx_id}` was preconfirmed failed with reason `{reason}`"
             );
         }
     }
@@ -412,10 +437,22 @@ async fn upgrade_consensus_parameters(
         TxStatus::SqueezedOut { .. } => {
             anyhow::bail!("the transaction `{tx_id}` was squeezed out");
         }
-        TxStatus::Revert(revert_status) => {
+        TxStatus::Failure(revert_status) => {
             let reason = revert_status.reason;
             anyhow::bail!(
                 "the transaction `{tx_id}` was reverted with reason `{reason}`"
+            );
+        }
+        TxStatus::PreconfirmationSuccess { .. } => {
+            println!(
+                "The consensus parameters of the network \
+                are successfully upgraded by preconfirmed transaction `{tx_id}`."
+            );
+        }
+        TxStatus::PreconfirmationFailure(failure_status) => {
+            let reason = failure_status.reason;
+            anyhow::bail!(
+                "The preconfirmed transaction `{tx_id}` was reverted with reason `{reason}`."
             );
         }
     }

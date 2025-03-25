@@ -1,10 +1,10 @@
 use fuels::{
     accounts::{
+        Account,
+        ViewOnlyAccount,
         provider::Provider,
         signers::private_key::PrivateKeySigner,
         wallet::Wallet,
-        Account,
-        ViewOnlyAccount,
     },
     crypto::{
         Message,
@@ -12,12 +12,12 @@ use fuels::{
         Signature,
     },
     types::{
+        AssetId,
         bech32::Bech32Address,
         coin_type_id::CoinTypeId,
         errors::Error,
         input::Input,
         transaction_builders::TransactionBuilder,
-        AssetId,
     },
 };
 use fuels_core::traits::Signer;
@@ -67,7 +67,7 @@ impl ViewOnlyAccount for UpgraderWallet {
     async fn get_asset_inputs_for_amount(
         &self,
         asset_id: AssetId,
-        amount: u64,
+        amount: u128,
         excluded_coins: Option<Vec<CoinTypeId>>,
     ) -> Result<Vec<Input>, Error> {
         match self {
