@@ -7,10 +7,17 @@ use aws_sdk_kms::{
 };
 use fuels::{
     accounts::{
-        provider::Provider,
-        wallet::Wallet,
         Account,
         ViewOnlyAccount,
+        provider::Provider,
+        signers::kms::{
+            self,
+            aws::AwsKmsSigner,
+        },
+        wallet::{
+            Unlocked,
+            Wallet,
+        },
     },
     crypto::{
         Message,
@@ -18,6 +25,7 @@ use fuels::{
         Signature,
     },
     types::{
+        AssetId,
         bech32::{
             Bech32Address,
             FUEL_BECH32_HRP,
@@ -26,7 +34,6 @@ use fuels::{
         errors::Error,
         input::Input,
         transaction_builders::TransactionBuilder,
-        AssetId,
     },
 };
 use fuels_core::traits::Signer;
@@ -40,7 +47,7 @@ use k256::{
 
 #[derive(Clone, Debug)]
 pub struct KMSWallet {
-    pub wallet: Wallet,
+    pub wallet: Wallet<Unlocked<AwsKmsSigner>>,
     kms_data: KMSData,
 }
 
@@ -56,7 +63,7 @@ impl KMSWallet {
     // Requires "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_ENDPOINT_URL" and "AWS_REGION" to be defined in env.
     pub async fn from_kms_key_id(
         kms_key_id: String,
-        provider: Option<Provider>,
+        provider: Provider,
     ) -> anyhow::Result<Self> {
         let config = aws_config::load_from_env().await;
         let client = aws_sdk_kms::Client::new(&config);
@@ -93,8 +100,11 @@ impl KMSWallet {
         println!("Fuel address: {}", fuel_address);
 
         let address = Bech32Address::new(FUEL_BECH32_HRP, fuel_address);
+        let kms_signer = kms::aws::AwsKmsSigner::new(&kms_key_id, &client).await?;
+        let wallet = Wallet::new(kms_signer, provider);
+
         Ok(Self {
-            wallet: Wallet::from_address(address.clone(), provider),
+            wallet,
             kms_data: KMSData {
                 key_id: kms_key_id,
                 client,
@@ -108,7 +118,7 @@ impl KMSWallet {
         self.wallet.address()
     }
 
-    pub fn provider(&self) -> Option<&Provider> {
+    pub fn provider(&self) -> &Provider {
         self.wallet.provider()
     }
 }
@@ -187,7 +197,7 @@ impl ViewOnlyAccount for KMSWallet {
     async fn get_asset_inputs_for_amount(
         &self,
         asset_id: AssetId,
-        amount: u64,
+        amount: u128,
         excluded_coins: Option<Vec<CoinTypeId>>,
     ) -> Result<Vec<Input>, Error> {
         Ok(self
@@ -203,11 +213,7 @@ impl ViewOnlyAccount for KMSWallet {
     }
 
     fn try_provider(&self) -> Result<&Provider, Error> {
-        self.wallet.provider().ok_or_else(|| {
-            Error::Other(
-                "no provider available. Make sure to use `set_provider`".to_owned(),
-            )
-        })
+        Ok(self.wallet.provider())
     }
 }
 

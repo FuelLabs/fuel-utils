@@ -1,9 +1,10 @@
 use fuels::{
     accounts::{
-        provider::Provider,
-        wallet::WalletUnlocked,
         Account,
         ViewOnlyAccount,
+        provider::Provider,
+        signers::private_key::PrivateKeySigner,
+        wallet::Wallet,
     },
     crypto::{
         Message,
@@ -11,12 +12,12 @@ use fuels::{
         Signature,
     },
     types::{
+        AssetId,
         bech32::Bech32Address,
         coin_type_id::CoinTypeId,
         errors::Error,
         input::Input,
         transaction_builders::TransactionBuilder,
-        AssetId,
     },
 };
 use fuels_core::traits::Signer;
@@ -26,27 +27,27 @@ use crate::kms_wallet::KMSWallet;
 #[derive(Clone, Debug)]
 pub enum UpgraderWallet {
     Kms(KMSWallet),
-    WalletUnlocked(WalletUnlocked),
+    WalletUnlocked(Wallet),
 }
 
 impl UpgraderWallet {
     pub async fn from_kms_key_id(
         kms_key_id: String,
-        provider: Option<Provider>,
+        provider: Provider,
     ) -> anyhow::Result<Self> {
         Ok(UpgraderWallet::Kms(
             KMSWallet::from_kms_key_id(kms_key_id, provider).await?,
         ))
     }
 
-    pub fn from_secret_key(private_key: SecretKey, provider: Option<Provider>) -> Self {
-        UpgraderWallet::WalletUnlocked(WalletUnlocked::new_from_private_key(
-            private_key,
+    pub fn from_secret_key(private_key: SecretKey, provider: Provider) -> Self {
+        UpgraderWallet::WalletUnlocked(Wallet::new(
+            PrivateKeySigner::new(private_key),
             provider,
         ))
     }
 
-    pub fn provider(&self) -> Option<&Provider> {
+    pub fn provider(&self) -> &Provider {
         match self {
             UpgraderWallet::Kms(wallet) => wallet.provider(),
             UpgraderWallet::WalletUnlocked(wallet) => wallet.provider(),
@@ -66,7 +67,7 @@ impl ViewOnlyAccount for UpgraderWallet {
     async fn get_asset_inputs_for_amount(
         &self,
         asset_id: AssetId,
-        amount: u64,
+        amount: u128,
         excluded_coins: Option<Vec<CoinTypeId>>,
     ) -> Result<Vec<Input>, Error> {
         match self {
@@ -113,7 +114,7 @@ impl Signer for UpgraderWallet {
     async fn sign(&self, message: Message) -> Result<Signature, Error> {
         match self {
             UpgraderWallet::Kms(wallet) => wallet.sign(message).await,
-            UpgraderWallet::WalletUnlocked(wallet) => wallet.sign(message).await,
+            UpgraderWallet::WalletUnlocked(wallet) => wallet.signer().sign(message).await,
         }
     }
 

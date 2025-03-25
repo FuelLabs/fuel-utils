@@ -20,9 +20,9 @@ env:
   GIT_REPO: ${{ github.repository }}
   GIT_REPO_NAME: ${{ github.event.repository.name }}
   CARGO_TERM_COLOR: always
-  RUST_VERSION: 1.81.0
-  RUST_VERSION_FMT: nightly-2023-10-29
-  RUST_VERSION_COV: nightly-2024-06-05
+  RUST_VERSION: 1.85.1
+  RUST_VERSION_FMT: nightly-2025-03-24
+  RUST_VERSION_COV: nightly-2025-03-24
   RUSTFLAGS: -D warnings
   REGISTRY: ghcr.io
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2

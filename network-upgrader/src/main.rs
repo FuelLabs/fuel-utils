@@ -158,7 +158,7 @@ enum Command {
 
 async fn create_wallet(
     aws_kms_key_id: Option<String>,
-    provider: Option<Provider>,
+    provider: Provider,
 ) -> anyhow::Result<UpgraderWallet> {
     match aws_kms_key_id {
         Some(key_id) => UpgraderWallet::from_kms_key_id(key_id, provider).await,
@@ -190,7 +190,7 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
     let provider = Provider::connect(upload.url.as_str()).await?;
 
     let chain_id = provider.chain_info().await?.consensus_parameters.chain_id();
-    let wallet = create_wallet(upload.aws_kms_key_id.clone(), Some(provider)).await?;
+    let wallet = create_wallet(upload.aws_kms_key_id.clone(), provider).await?;
 
     println!("Reading bytecode from `{}`.", upload.path.to_string_lossy());
     let bytecode = fs::read(&upload.path)?;
@@ -213,7 +213,7 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
         .enumerate()
         .skip(upload.starting_subsection)
     {
-        let provider = wallet.provider().unwrap();
+        let provider = wallet.provider();
         bar.set_message(format!(
             "Uploading subsection `{i}` of `{total}`.",
             i = i,
@@ -265,11 +265,28 @@ async fn upload(upload: &Upload) -> anyhow::Result<()> {
             }
             TxStatus::SqueezedOut { .. } => {
                 bar.abandon_with_message("an error was detected");
-                anyhow::bail!("subsection `{i}` upload failed. The transaction `{tx_id}` was squeezed out.");
+                anyhow::bail!(
+                    "subsection `{i}` upload failed. The transaction `{tx_id}` was squeezed out."
+                );
             }
-            TxStatus::Revert { reason, .. } => {
+            TxStatus::Failure(failure_status) => {
+                let reason = failure_status.reason;
                 bar.abandon_with_message("an error was detected");
-                anyhow::bail!("subsection `{i}` upload failed. The transaction `{tx_id}` was reverted with reason `{reason}`.");
+                anyhow::bail!(
+                    "subsection `{i}` upload failed. The transaction `{tx_id}` was reverted with reason `{reason}`."
+                );
+            }
+            TxStatus::PreconfirmationSuccess { .. } => {
+                bar.set_message(format!(
+                    "Subsection `{i}` successfully committed to the network with tx id `{tx_id}`."
+                ));
+            }
+            TxStatus::PreconfirmationFailure(failure_status) => {
+                let reason = failure_status.reason;
+                bar.abandon_with_message("an error was detected");
+                anyhow::bail!(
+                    "subsection `{i}` upload failed. The transaction `{tx_id}` was reverted with reason `{reason}`."
+                );
             }
         }
     }
@@ -283,7 +300,7 @@ async fn upgrade(upgrade: &Upgrade) -> anyhow::Result<()> {
     current_versions_from_url(upgrade.url.as_str()).await?;
 
     let provider = Provider::connect(upgrade.url.as_str()).await?;
-    let wallet = create_wallet(upgrade.aws_kms_key_id.clone(), Some(provider)).await?;
+    let wallet = create_wallet(upgrade.aws_kms_key_id.clone(), provider).await?;
 
     match &upgrade.upgrade {
         UpgradeVariants::StateTransition(cmd) => {
@@ -305,9 +322,7 @@ async fn upgrade_state_transition(
     wallet: &UpgraderWallet,
     state_transition: &StateTransition,
 ) -> anyhow::Result<()> {
-    let provider = wallet
-        .provider()
-        .ok_or(anyhow::anyhow!("Provider is not set."))?;
+    let provider = wallet.provider();
 
     let chain_id = provider.chain_info().await?.consensus_parameters.chain_id();
     let root = state_transition.root;
@@ -343,9 +358,19 @@ async fn upgrade_state_transition(
         TxStatus::SqueezedOut { .. } => {
             anyhow::bail!("The transaction `{tx_id}` was squeezed out.");
         }
-        TxStatus::Revert { reason, .. } => {
+        TxStatus::Failure(failure_status) => {
+            let reason = failure_status.reason;
             anyhow::bail!(
                 "the transaction `{tx_id}` was reverted with reason `{reason}`"
+            );
+        }
+        TxStatus::PreconfirmationSuccess { .. } => {
+            anyhow::bail!("the transaction `{tx_id}` was preconfirmed successfully");
+        }
+        TxStatus::PreconfirmationFailure(failure_status) => {
+            let reason = failure_status.reason;
+            anyhow::bail!(
+                "the transaction `{tx_id}` was preconfirmed failed with reason `{reason}`"
             );
         }
     }
@@ -357,9 +382,7 @@ async fn upgrade_consensus_parameters(
     wallet: &UpgraderWallet,
     cmd: &ConsensusParametersCommand,
 ) -> anyhow::Result<()> {
-    let provider = wallet
-        .provider()
-        .ok_or(anyhow::anyhow!("Provider is not set."))?;
+    let provider = wallet.provider();
 
     let chain_id = provider.chain_info().await?.consensus_parameters.chain_id();
     println!(
@@ -414,9 +437,22 @@ async fn upgrade_consensus_parameters(
         TxStatus::SqueezedOut { .. } => {
             anyhow::bail!("the transaction `{tx_id}` was squeezed out");
         }
-        TxStatus::Revert { reason, .. } => {
+        TxStatus::Failure(revert_status) => {
+            let reason = revert_status.reason;
             anyhow::bail!(
                 "the transaction `{tx_id}` was reverted with reason `{reason}`"
+            );
+        }
+        TxStatus::PreconfirmationSuccess { .. } => {
+            println!(
+                "The consensus parameters of the network \
+                are successfully upgraded by preconfirmed transaction `{tx_id}`."
+            );
+        }
+        TxStatus::PreconfirmationFailure(failure_status) => {
+            let reason = failure_status.reason;
+            anyhow::bail!(
+                "The preconfirmed transaction `{tx_id}` was reverted with reason `{reason}`."
             );
         }
     }
@@ -427,7 +463,7 @@ async fn upgrade_consensus_parameters(
 async fn transfer(transfer: &Transfer) -> anyhow::Result<()> {
     let provider = Provider::connect(transfer.url.as_str()).await?;
     let consensus_parameters = provider.consensus_parameters().await?.clone();
-    let wallet = create_wallet(transfer.aws_kms_key_id.clone(), Some(provider)).await?;
+    let wallet = create_wallet(transfer.aws_kms_key_id.clone(), provider).await?;
     let recipient: fuels::types::Address = (*transfer.recipient).into();
     let bench_recipient = Bech32Address::from(recipient);
     let amount = transfer.amount;
