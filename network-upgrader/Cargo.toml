@@ -23,10 +23,10 @@ aws-sdk-kms = "1.37.0"
 k256 = { version = "0.13.3", features = ["ecdsa-core"] }
 clap = { version = "4.5", features = ["derive", "env"] }
 indicatif = "0.17.9"
-fuels = { git = "https://github.com/fuellabs/fuels-rs", rev = "1da6aae1660a1b05edf5729447380142de2d64aa", features = ["accounts-signer-aws-kms"] }
-fuels-core = { git = "https://github.com/fuellabs/fuels-rs", rev = "1da6aae1660a1b05edf5729447380142de2d64aa" }
-fuel-core-types = { version = "=0.42.0", features = ["serde"] }
-fuel-core-client = "=0.42.0"
+fuels = { git = "https://github.com/fuellabs/fuels-rs", rev = "d9f9f7e5872b5c975f4d621466623ddd0e5388e2", features = ["accounts-signer-aws-kms"] }
+fuels-core = { git = "https://github.com/fuellabs/fuels-rs", rev = "d9f9f7e5872b5c975f4d621466623ddd0e5388e2" }
+fuel-core-types = { version = "0.43.0", features = ["serde"] }
+fuel-core-client = "0.43.0"
 postcard = "1"
 serde_json = { version = "1.0", features = ["raw_value"] }
 termion = "4"
