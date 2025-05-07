@@ -16,10 +16,11 @@ use fuel_core_types::{
     blockchain::{
         block::Block,
         header::{
+            v1::GeneratedApplicationFieldsV1,
             ApplicationHeader,
             BlockHeader,
+            BlockHeaderV1,
             ConsensusHeader,
-            GeneratedApplicationFields,
             GeneratedConsensusFields,
         },
     },
@@ -134,7 +135,7 @@ fn convert_to_fuel_block(full_block: FullBlock) -> Option<Block> {
             .header
             .state_transition_bytecode_version
             .into(),
-        generated: GeneratedApplicationFields {
+        generated: GeneratedApplicationFieldsV1 {
             transactions_count: full_block.header.transactions_count.into(),
             message_receipt_count: full_block.header.message_receipt_count.into(),
             transactions_root: full_block.header.transactions_root.into(),
@@ -150,9 +151,12 @@ fn convert_to_fuel_block(full_block: FullBlock) -> Option<Block> {
             application_hash: application_header.hash(),
         },
     };
-    let mut header = BlockHeader::default();
-    header.set_consensus_header(consensus_header);
+
+    let mut header = BlockHeaderV1::default();
     header.set_application_header(application_header);
+
+    let mut header = BlockHeader::V1(header);
+    header.set_consensus_header(consensus_header);
 
     let mut transactions = Vec::with_capacity(full_block.transactions.len());
 
