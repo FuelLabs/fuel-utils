@@ -18,7 +18,7 @@ use fuels::{
     },
     crypto::SecretKey,
     prelude::Provider,
-    types::transaction_builders::UploadTransactionBuilder,
+    types::transaction_builders::{UpgradeTransactionBuilder, UploadTransactionBuilder},
 };
 use fuels_core::types::{
     bech32::Bech32Address,
