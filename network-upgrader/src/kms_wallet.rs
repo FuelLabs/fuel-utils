@@ -25,11 +25,8 @@ use fuels::{
         Signature,
     },
     types::{
+        Address,
         AssetId,
-        bech32::{
-            Bech32Address,
-            FUEL_BECH32_HRP,
-        },
         coin_type_id::CoinTypeId,
         errors::Error,
         input::Input,
@@ -56,7 +53,7 @@ pub struct KMSData {
     key_id: String,
     client: aws_sdk_kms::Client,
     cached_public_key: Vec<u8>,
-    cached_address: Bech32Address,
+    cached_address: Address,
 }
 
 impl KMSWallet {
@@ -99,7 +96,7 @@ impl KMSWallet {
 
         println!("Fuel address: {}", fuel_address);
 
-        let address = Bech32Address::new(FUEL_BECH32_HRP, fuel_address);
+        let address: Address = (*fuel_address).into();
         let kms_signer = kms::aws::AwsKmsSigner::new(&kms_key_id, &client).await?;
         let wallet = Wallet::new(kms_signer, provider);
 
@@ -114,7 +111,7 @@ impl KMSWallet {
         })
     }
 
-    pub fn address(&self) -> &Bech32Address {
+    pub fn address(&self) -> Address {
         self.wallet.address()
     }
 
@@ -125,8 +122,8 @@ impl KMSWallet {
 
 #[async_trait::async_trait]
 impl Signer for KMSWallet {
-    fn address(&self) -> &Bech32Address {
-        &self.kms_data.cached_address
+    fn address(&self) -> Address {
+        self.kms_data.cached_address
     }
 
     async fn sign(&self, message: Message) -> Result<Signature, Error> {
@@ -208,7 +205,7 @@ impl ViewOnlyAccount for KMSWallet {
             .collect::<Vec<Input>>())
     }
 
-    fn address(&self) -> &Bech32Address {
+    fn address(&self) -> Address {
         self.wallet.address()
     }
 

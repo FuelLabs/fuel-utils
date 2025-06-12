@@ -18,10 +18,12 @@ use fuels::{
     },
     crypto::SecretKey,
     prelude::Provider,
-    types::transaction_builders::{UpgradeTransactionBuilder, UploadTransactionBuilder},
+    types::transaction_builders::{
+        UpgradeTransactionBuilder,
+        UploadTransactionBuilder,
+    },
 };
 use fuels_core::types::{
-    bech32::Bech32Address,
     transaction::Transaction,
     transaction_builders::TransactionBuilder,
     tx_status::TxStatus,
@@ -462,14 +464,13 @@ async fn transfer(transfer: &Transfer) -> anyhow::Result<()> {
     let consensus_parameters = provider.consensus_parameters().await?.clone();
     let wallet = create_wallet(transfer.aws_kms_key_id.clone(), provider).await?;
     let recipient: fuels::types::Address = (*transfer.recipient).into();
-    let bench_recipient = Bech32Address::from(recipient);
     let amount = transfer.amount;
     let asset_id = transfer.asset_id.map(|id| (*id).into());
     let asset_id = asset_id.unwrap_or(*consensus_parameters.base_asset_id());
     let sender = wallet.address();
 
     wallet
-        .transfer(&bench_recipient, amount, asset_id, Default::default())
+        .transfer(recipient, amount, asset_id, Default::default())
         .await?;
 
     println!(
