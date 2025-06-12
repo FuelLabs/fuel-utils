@@ -1,7 +1,7 @@
 [package]
 name = "fuel-core-block-extractor"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 homepage = "https://fuel.network/"
 keywords = ["blockchain", "cryptocurrencies", "fuel-vm", "vm", "utils"]
 license = "Apache-2.0"
@@ -15,9 +15,9 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive", "env"] }
-fuel-tx = "0.60.2"
-fuel-core-client = "0.43.2"
-fuel-core-client-ext = { git = "https://github.com/FuelLabs/network-watchtower", branch = "feature/v0.43.2" }
-fuel-core-types = { version = "0.43.2", features = ["serde", "test-helpers"] }
+fuel-tx = "0.62.0"
+fuel-core-client = "0.44.0"
+fuel-core-client-ext = { git = "https://github.com/FuelLabs/network-watchtower", branch = "main" }
+fuel-core-types = { version = "0.44.0", features = ["serde", "test-helpers"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
