@@ -12,8 +12,8 @@ use fuels::{
         Signature,
     },
     types::{
+        Address,
         AssetId,
-        bech32::Bech32Address,
         coin_type_id::CoinTypeId,
         errors::Error,
         input::Input,
@@ -54,7 +54,7 @@ impl UpgraderWallet {
         }
     }
 
-    pub fn address(&self) -> &Bech32Address {
+    pub fn address(&self) -> Address {
         match self {
             UpgraderWallet::Kms(wallet) => wallet.address(),
             UpgraderWallet::WalletUnlocked(wallet) => wallet.address(),
@@ -84,7 +84,7 @@ impl ViewOnlyAccount for UpgraderWallet {
         }
     }
 
-    fn address(&self) -> &Bech32Address {
+    fn address(&self) -> Address {
         match self {
             UpgraderWallet::Kms(wallet) => wallet.address(),
             UpgraderWallet::WalletUnlocked(wallet) => wallet.address(),
@@ -118,7 +118,7 @@ impl Signer for UpgraderWallet {
         }
     }
 
-    fn address(&self) -> &Bech32Address {
+    fn address(&self) -> Address {
         match self {
             UpgraderWallet::Kms(wallet) => wallet.address(),
             UpgraderWallet::WalletUnlocked(wallet) => wallet.address(),

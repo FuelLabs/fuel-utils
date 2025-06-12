@@ -1,6 +1,6 @@
 [package]
 name = "fuel-core-network-upgrader"
-version = "0.0.6-rc.0"
+version = "0.0.9"
 edition = "2024"
 homepage = "https://fuel.network/"
 keywords = ["blockchain", "cryptocurrencies", "fuel-vm", "vm", "utils"]
@@ -23,10 +23,10 @@ aws-sdk-kms = "1.37.0"
 k256 = { version = "0.13.3", features = ["ecdsa-core"] }
 clap = { version = "4.5", features = ["derive", "env"] }
 indicatif = "0.17.9"
-fuels = { git = "https://github.com/fuellabs/fuels-rs", rev = "d9f9f7e5872b5c975f4d621466623ddd0e5388e2", features = ["accounts-signer-aws-kms"] }
-fuels-core = { git = "https://github.com/fuellabs/fuels-rs", rev = "d9f9f7e5872b5c975f4d621466623ddd0e5388e2" }
-fuel-core-types = { version = "0.43.0", features = ["serde"] }
-fuel-core-client = "0.43.0"
+fuels = { version = "0.74.0", features = ["accounts-signer-aws-kms"] }
+fuels-core = { version = "0.74.0" }
+fuel-core-types = { version = "0.44.0", features = ["serde"] }
+fuel-core-client = "0.44.0"
 postcard = "1"
 serde_json = { version = "1.0", features = ["raw_value"] }
 termion = "4"
