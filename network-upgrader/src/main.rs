@@ -2,6 +2,11 @@
 use clap::Parser;
 use fuel_core_client::client::FuelClient;
 use fuel_core_types::{
+    fuel_asm::{
+        GTFArgs,
+        RegId,
+        op,
+    },
     fuel_crypto::Hasher,
     fuel_tx::{
         Address,
@@ -9,6 +14,10 @@ use fuel_core_types::{
         Bytes32,
         ConsensusParameters,
         UploadSubsection,
+    },
+    fuel_types::{
+        ContractId,
+        canonical::Serialize,
     },
 };
 use fuels::{
@@ -19,13 +28,19 @@ use fuels::{
     crypto::SecretKey,
     prelude::Provider,
     types::transaction_builders::{
+        BuildableTransaction,
         UpgradeTransactionBuilder,
         UploadTransactionBuilder,
     },
 };
 use fuels_core::types::{
+    input::Input,
+    output::Output,
     transaction::Transaction,
-    transaction_builders::TransactionBuilder,
+    transaction_builders::{
+        ScriptTransactionBuilder,
+        TransactionBuilder,
+    },
     tx_status::TxStatus,
 };
 use indicatif::{
@@ -48,7 +63,7 @@ pub struct Upload {
     /// The path to the bytecode file to upload.
     #[clap(long = "path", short = 'p')]
     pub path: PathBuf,
-    /// The URL to upload the bytecode to.
+    /// The URL to send transaction.
     #[clap(long = "url", short = 'u', env)]
     pub url: String,
     /// The size of the subsections to split the bytecode into.
@@ -73,7 +88,7 @@ pub struct Transfer {
     /// The recipient of the transfer.
     #[clap(long = "recipient", short = 'r', env)]
     pub recipient: Address,
-    /// The URL to upload the bytecode to.
+    /// The URL to send transaction.
     #[clap(long = "url", short = 'u', env)]
     pub url: String,
     /// The asset to transfer.
@@ -84,10 +99,29 @@ pub struct Transfer {
     pub aws_kms_key_id: Option<String>,
 }
 
+/// Collects the fee from the network for coinbase account.
+#[derive(Debug, clap::Args)]
+pub struct CollectFee {
+    /// The URL to send transaction.
+    #[clap(long = "url", short = 'u', env)]
+    pub url: String,
+    /// The contract id of the coinbase contract.
+    #[clap(
+        long = "contract",
+        short = 'c',
+        env,
+        default_value = "0x7777777777777777777777777777777777777777777777777777777777777777"
+    )]
+    pub contract: ContractId,
+    /// Optional flag to sign with KMS
+    #[clap(long = "aws_kms_key_id", default_value = None, env)]
+    pub aws_kms_key_id: Option<String>,
+}
+
 /// Upgrades the state transition function of the network.
 #[derive(Debug, clap::Args)]
 pub struct Upgrade {
-    /// The URL to upload the bytecode to.
+    /// The URL to send transaction.
     #[clap(long = "url", short = 'u', env)]
     pub url: String,
     #[clap(subcommand)]
@@ -152,6 +186,7 @@ enum Command {
     Upgrade(Upgrade),
     Upload(Upload),
     Transfer(Transfer),
+    CollectFee(CollectFee),
     Parameters(Parameters),
 }
 
@@ -179,6 +214,7 @@ impl Command {
             Command::Upgrade(cmd) => upgrade(cmd).await,
             Command::Upload(cmd) => upload(cmd).await,
             Command::Transfer(cmd) => transfer(cmd).await,
+            Command::CollectFee(cmd) => collect_fee(cmd).await,
             Command::Parameters(cmd) => parameters(cmd).await,
             Command::CurrentVersions(cmd) => current_versions(cmd).await,
         }
@@ -477,6 +513,102 @@ async fn transfer(transfer: &Transfer) -> anyhow::Result<()> {
         "Successfully transferred `{amount}` of `{asset_id}` \
         assets to recipient `{recipient}`, from sender `{sender}`."
     );
+
+    Ok(())
+}
+
+async fn collect_fee(cmd: &CollectFee) -> anyhow::Result<()> {
+    let provider = Provider::connect(cmd.url.as_str()).await?;
+    let consensus_parameters = provider.consensus_parameters().await?.clone();
+    let wallet = create_wallet(cmd.aws_kms_key_id.clone(), provider.clone()).await?;
+
+    let asset_id = *consensus_parameters.base_asset_id();
+    let coinbase_contract = cmd.contract;
+
+    let fee_to_collect = wallet
+        .provider()
+        .get_contract_asset_balance(&coinbase_contract, &asset_id)
+        .await?;
+
+    println!(
+        "The fee to collect from the coinbase contract `{}` is `{}` of asset `{}`.",
+        coinbase_contract, fee_to_collect, asset_id
+    );
+
+    if fee_to_collect == 0 {
+        println!("No fees to collect.");
+        return Ok(());
+    }
+
+    let output_index = 0u64;
+    let call_struct_register = 0x10;
+
+    // Now call the fee collection contract to withdraw the fees
+    let script = vec![
+        // Point to the call structure
+        op::gtf_args(call_struct_register, 0x00, GTFArgs::ScriptData),
+        op::addi(
+            call_struct_register,
+            call_struct_register,
+            (asset_id.size() + output_index.size()) as u16,
+        ),
+        op::call(call_struct_register, RegId::ZERO, RegId::ZERO, RegId::CGAS),
+        op::ret(RegId::ONE),
+    ];
+
+    let script_data: Vec<u8> = asset_id
+        .to_bytes()
+        .into_iter()
+        .chain(output_index.to_bytes().into_iter())
+        .chain(coinbase_contract.to_bytes().into_iter())
+        .chain(0u64.to_bytes().into_iter())
+        .chain(0u64.to_bytes().into_iter())
+        .collect();
+
+    let mut builder = ScriptTransactionBuilder::default()
+        .with_tx_policies(Default::default())
+        .with_script(script.into_iter().collect())
+        .with_script_data(script_data)
+        .with_inputs(vec![Input::Contract {
+            utxo_id: Default::default(),
+            balance_root: Default::default(),
+            state_root: Default::default(),
+            tx_pointer: Default::default(),
+            contract_id: coinbase_contract,
+        }])
+        .with_outputs(vec![
+            // The position of the output should match `output_index`
+            Output::variable(Default::default(), Default::default(), Default::default()),
+            Output::contract(0, Default::default(), Default::default()),
+        ])
+        .with_estimation_horizon(10);
+    wallet.add_witnesses(&mut builder)?;
+    wallet.adjust_for_fee(&mut builder, 0).await?;
+    let tx = builder.build(&provider).await?;
+
+    let result = provider.send_transaction_and_await_commit(tx).await?;
+
+    match result {
+        TxStatus::Success { .. } | TxStatus::PreconfirmationSuccess { .. } => {
+            println!("Successfully claimed {fee_to_collect} fee.");
+        }
+        TxStatus::Submitted => {
+            anyhow::bail!("the transaction is submitted and awaiting confirmation");
+        }
+        TxStatus::SqueezedOut { .. } => {
+            anyhow::bail!("the transaction was squeezed out");
+        }
+        TxStatus::Failure(revert_status) => {
+            let reason = revert_status.reason;
+            anyhow::bail!("the transaction was reverted with reason `{reason}`");
+        }
+        TxStatus::PreconfirmationFailure(failure_status) => {
+            let reason = failure_status.reason;
+            anyhow::bail!(
+                "the preconfirmed transaction was reverted with reason `{reason}`"
+            );
+        }
+    }
 
     Ok(())
 }

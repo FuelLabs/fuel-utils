@@ -25,8 +25,8 @@ clap = { version = "4.5", features = ["derive", "env"] }
 indicatif = "0.17.9"
 fuels = { version = "0.74.0", features = ["accounts-signer-aws-kms"] }
 fuels-core = { version = "0.74.0" }
-fuel-core-types = { version = "0.44.0", features = ["serde"] }
-fuel-core-client = "0.44.0"
+fuel-core-types = { version = "0.46.0", features = ["serde"] }
+fuel-core-client = "0.46.0"
 postcard = "1"
 serde_json = { version = "1.0", features = ["raw_value"] }
 termion = "4"
