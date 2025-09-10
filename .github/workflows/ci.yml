@@ -6,9 +6,9 @@ on:
     branches:
       - master
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [ opened, synchronize, reopened, labeled, unlabeled ]
   release:
-    types: [published]
+    types: [ published ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -20,7 +20,7 @@ env:
   GIT_REPO: ${{ github.repository }}
   GIT_REPO_NAME: ${{ github.event.repository.name }}
   CARGO_TERM_COLOR: always
-  RUST_VERSION: 1.85.1
+  RUST_VERSION: 1.86.0
   RUST_VERSION_FMT: nightly-2025-03-24
   RUST_VERSION_COV: nightly-2025-03-24
   RUSTFLAGS: -D warnings
