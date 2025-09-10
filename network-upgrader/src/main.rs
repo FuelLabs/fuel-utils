@@ -84,7 +84,7 @@ pub struct Upload {
 pub struct Transfer {
     /// The amount to transfer.
     #[clap(long = "amount", short = 'a', env)]
-    pub amount: u64,
+    pub amount: Option<u64>,
     /// The recipient of the transfer.
     #[clap(long = "recipient", short = 'r', env)]
     pub recipient: Address,
@@ -498,11 +498,27 @@ async fn upgrade_consensus_parameters(
 async fn transfer(transfer: &Transfer) -> anyhow::Result<()> {
     let provider = Provider::connect(transfer.url.as_str()).await?;
     let consensus_parameters = provider.consensus_parameters().await?.clone();
-    let wallet = create_wallet(transfer.aws_kms_key_id.clone(), provider).await?;
-    let recipient: fuels::types::Address = (*transfer.recipient).into();
-    let amount = transfer.amount;
+    let wallet = create_wallet(transfer.aws_kms_key_id.clone(), provider.clone()).await?;
+    let recipient = transfer.recipient;
     let asset_id = transfer.asset_id.map(|id| (*id).into());
-    let asset_id = asset_id.unwrap_or(*consensus_parameters.base_asset_id());
+    let base_asset_id = *consensus_parameters.base_asset_id();
+    let asset_id = asset_id.unwrap_or(base_asset_id);
+    let amount = if let Some(amount) = transfer.amount {
+        amount
+    } else {
+        if asset_id != base_asset_id {
+            wallet.get_asset_balance(&asset_id).await? as u64
+        } else {
+            let gas_price = provider.estimate_gas_price(2).await?.gas_price;
+            let max_fee = consensus_parameters.tx_params().max_gas_per_tx() as u128
+                * gas_price as u128
+                / consensus_parameters.fee_params().gas_price_factor() as u128;
+            wallet
+                .get_asset_balance(&asset_id)
+                .await?
+                .saturating_sub(max_fee) as u64
+        }
+    };
     let sender = wallet.address();
 
     wallet
