@@ -5,13 +5,19 @@ use fuel_types::{
     BlockHeight,
     ContractId,
 };
-use futures::TryStreamExt;
+use futures::{
+    StreamExt,
+    TryStreamExt,
+};
+use itertools::Itertools;
 use std::sync::Arc;
 
 pub struct ContractStateLoader {
     contract_id: ContractId,
     client: Arc<FuelClient>,
 }
+
+const CHUNK_SIZE: usize = 1000;
 
 impl ContractStateLoader {
     pub fn new(contract_id: ContractId, client: Arc<FuelClient>) -> Self {
@@ -34,13 +40,31 @@ impl ContractStateLoader {
                 .try_collect::<Vec<_>>()
                 .await?;
 
-            let slots_values = client
-                .contract_slots_values(
-                    &self.contract_id,
-                    Some(target_block_height),
-                    slots_keys,
-                )
-                .await?;
+            let batched_keys = slots_keys
+                .chunks(CHUNK_SIZE)
+                .map(|b| b.to_vec())
+                .collect::<Vec<_>>();
+
+            let slots_values = futures::stream::iter(batched_keys)
+                .map(|slots| {
+                    let client = client.clone();
+
+                    async move {
+                        client
+                            .contract_slots_values(
+                                &self.contract_id,
+                                Some(target_block_height),
+                                slots,
+                            )
+                            .await
+                    }
+                })
+                .buffered(10)
+                .collect::<Vec<_>>()
+                .await;
+
+            let slots_values: Vec<_> = slots_values.into_iter().try_collect()?;
+            let slots_values = slots_values.into_iter().flatten().collect::<Vec<_>>();
 
             Ok::<_, anyhow::Error>(slots_values)
         });
