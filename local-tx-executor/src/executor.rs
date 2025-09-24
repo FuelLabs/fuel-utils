@@ -8,7 +8,10 @@ use fuel_tx::{
     Receipt,
     Transaction,
 };
-use fuel_types::BlockHeight;
+use fuel_types::{
+    BlockHeight,
+    ContractId,
+};
 use fuel_vm::prelude::MemoryInstance;
 use reqwest::Url;
 use std::{
@@ -18,13 +21,19 @@ use std::{
 };
 use tokio::sync::mpsc;
 
+pub enum WhatToOverride {
+    Contract { contract_id: ContractId },
+}
+
 pub enum Event {
-    DryRun(
-        (
-            Vec<Transaction>,
-            tokio::sync::oneshot::Sender<anyhow::Result<Vec<Vec<Receipt>>>>,
-        ),
-    ),
+    Override {
+        what: WhatToOverride,
+        value: Option<Vec<u8>>,
+    },
+    DryRun {
+        txs: Vec<Transaction>,
+        response: tokio::sync::oneshot::Sender<anyhow::Result<Vec<Vec<Receipt>>>>,
+    },
 }
 
 pub struct ExecutorInner {
@@ -106,23 +115,38 @@ impl ExecutorInner {
                     break;
                 }
 
-                dry_run = self.dry_run_queue.recv() => {
-                    if let Some(Event::DryRun((transactions, sender))) = dry_run {
-                        tracing::info!("Dry running transactions");
-                        let receipts = self
-                            .dry_run(transactions, &mut memory);
-                        tracing::info!("Finished dry running transactions");
-                        if let Err(_) = sender.send(receipts) {
-                            tracing::error!("Failed to send receipts");
-                            break
+                command = self.dry_run_queue.recv() => {
+                    match command {
+                        None => {
+                            tracing::info!("Dry run channel closed, shutting down executor");
+                            break;
                         }
+                        Some(command) => {
+                            match command {
+                                Event::DryRun{ txs, response } => {
+                                    tracing::info!("Dry running transactions");
+                                    let receipts = self
+                                        .dry_run(txs, &mut memory);
+                                    tracing::info!("Finished dry running transactions");
+                                    if let Err(_) = response.send(receipts) {
+                                        tracing::error!("Failed to send receipts");
+                                        break
+                                    }
 
-                        let result = self.vm_storage.to_storage(&self.path);
-                        if let Err(e) = result {
-                            tracing::error!("Failed to save VMStorage to storage: {:?}", e);
+                                    let result = self.vm_storage.to_storage(&self.path);
+                                    if let Err(e) = result {
+                                        tracing::error!("Failed to save VMStorage to storage: {:?}", e);
+                                    }
+                                }
+                                Event::Override{ what, value } => {
+                                    match what {
+                                        WhatToOverride::Contract{ contract_id } => {
+                                            self.vm_storage.contracts_bytecodes.insert(contract_id, value.map(Into::into));
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    } else {
-                        break
                     }
                 }
                 block = self.blocks.recv() => {
@@ -209,13 +233,25 @@ impl Executor {
         Ok(Self { sender })
     }
 
+    pub async fn override_state(
+        &self,
+        what: WhatToOverride,
+        value: Option<Vec<u8>>,
+    ) -> anyhow::Result<()> {
+        self.sender.send(Event::Override { what, value }).await?;
+        Ok(())
+    }
+
     pub async fn dry_run(
         &self,
         transactions: Vec<Transaction>,
     ) -> anyhow::Result<Vec<Vec<Receipt>>> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         self.sender
-            .send(Event::DryRun((transactions, sender)))
+            .send(Event::DryRun {
+                txs: transactions,
+                response: sender,
+            })
             .await?;
         receiver.await?
     }
