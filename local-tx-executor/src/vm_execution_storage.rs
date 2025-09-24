@@ -522,7 +522,7 @@ mod contract_state {
             key: &ContractsStateKey,
         ) -> Result<Option<Vec<u8>>, Self::Error> {
             let value = <_ as StorageInspect<ContractsState>>::get(self, key)?;
-            Ok(value.map(|v| v.into_owned().0))
+            Ok(value.map(|v| v.into_owned().into()))
         }
     }
 }
@@ -645,7 +645,7 @@ mod blob {
 
         fn read_alloc(&self, key: &BlobId) -> Result<Option<Vec<u8>>, Self::Error> {
             let value = <_ as StorageInspect<BlobData>>::get(self, key)?;
-            Ok(value.map(|v| v.into_owned().0))
+            Ok(value.map(|v| v.into_owned().into()))
         }
     }
 }

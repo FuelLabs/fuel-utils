@@ -22,7 +22,7 @@ pub enum Event {
     DryRun(
         (
             Vec<Transaction>,
-            tokio::sync::oneshot::Sender<Vec<Vec<Receipt>>>,
+            tokio::sync::oneshot::Sender<anyhow::Result<Vec<Vec<Receipt>>>>,
         ),
     ),
 }
@@ -110,7 +110,7 @@ impl ExecutorInner {
                     if let Some(Event::DryRun((transactions, sender))) = dry_run {
                         tracing::info!("Dry running transactions");
                         let receipts = self
-                            .dry_run(transactions, &mut memory)?;
+                            .dry_run(transactions, &mut memory);
                         tracing::info!("Finished dry running transactions");
                         if let Err(_) = sender.send(receipts) {
                             tracing::error!("Failed to send receipts");
@@ -132,12 +132,6 @@ impl ExecutorInner {
                         break
                     }
                 }
-                // _ = tick.tick() => {
-                //     if let Some(last_dry_run) = last_dry_run.clone() {
-                //         self
-                //             .dry_run(last_dry_run, &mut memory)?;
-                //     }
-                // }
             }
         }
 
@@ -215,13 +209,15 @@ impl Executor {
         Ok(Self { sender })
     }
 
-    pub async fn dry_run(&self, transactions: Vec<Transaction>) -> Vec<Vec<Receipt>> {
+    pub async fn dry_run(
+        &self,
+        transactions: Vec<Transaction>,
+    ) -> anyhow::Result<Vec<Vec<Receipt>>> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         self.sender
             .send(Event::DryRun((transactions, sender)))
-            .await
-            .unwrap();
-        receiver.await.unwrap()
+            .await?;
+        receiver.await?
     }
 }
 
@@ -230,6 +226,8 @@ mod tests {
     use crate::executor::Executor;
     use fuel_types::canonical::Deserialize;
     use std::path::PathBuf;
+
+    const URL: &str = "http://localhost:4001";
 
     #[tokio::test(flavor = "multi_thread")]
     async fn can_dry_run_locally() {
@@ -240,13 +238,12 @@ mod tests {
         let executor = Executor::new(
             Some(13374110u32.into()),
             PathBuf::new(),
-            "http://localhost:4000".parse().unwrap(),
+            URL.parse().unwrap(),
             false,
         )
         .await
         .unwrap();
 
-        let start = std::time::Instant::now();
         let receipts = executor.dry_run(vec![tx.clone()]).await;
         tracing::info!("Receipts: {:?}", receipts);
     }
@@ -264,7 +261,7 @@ mod tests {
         let executor = Executor::new(
             Some(13023073u32.into()),
             PathBuf::new(),
-            "http://localhost:4000".parse().unwrap(),
+            URL.parse().unwrap(),
             false,
         )
         .await

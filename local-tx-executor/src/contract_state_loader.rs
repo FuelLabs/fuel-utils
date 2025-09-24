@@ -86,9 +86,11 @@ mod tests {
     use fuel_types::ContractId;
     use std::sync::Arc;
 
+    const URL: &str = "http://localhost:4001";
+
     #[tokio::test]
     async fn test_load_contract_state() {
-        let client = FuelClient::new("http://127.0.0.1:4000/").unwrap();
+        let client = FuelClient::new(URL).unwrap();
         let client = Arc::new(client);
         let contract_id: ContractId =
             "0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7"
