@@ -30,6 +30,9 @@ pub enum Event {
         what: WhatToOverride,
         value: Option<Vec<u8>>,
     },
+    Snapshot {
+        sender: tokio::sync::oneshot::Sender<()>,
+    },
     DryRun {
         txs: Vec<Transaction>,
         response: tokio::sync::oneshot::Sender<anyhow::Result<Vec<Vec<Receipt>>>>,
@@ -132,11 +135,6 @@ impl ExecutorInner {
                                         tracing::error!("Failed to send receipts");
                                         break
                                     }
-
-                                    let result = self.vm_storage.to_storage(&self.path);
-                                    if let Err(e) = result {
-                                        tracing::error!("Failed to save VMStorage to storage: {:?}", e);
-                                    }
                                 }
                                 Event::Override{ what, value } => {
                                     match what {
@@ -144,6 +142,13 @@ impl ExecutorInner {
                                             self.vm_storage.contracts_bytecodes.insert(contract_id, value.map(Into::into));
                                         }
                                     }
+                                }
+                                Event::Snapshot { sender }  => {
+                                    let result = self.vm_storage.to_storage(&self.path);
+                                    if let Err(e) = result {
+                                        tracing::error!("Failed to save VMStorage to storage: {:?}", e);
+                                    }
+                                    let _ = sender.send(());
                                 }
                             }
                         }
@@ -231,6 +236,13 @@ impl Executor {
         });
 
         Ok(Self { sender })
+    }
+
+    pub async fn snapshot(&self) -> anyhow::Result<()> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.sender.send(Event::Snapshot { sender }).await?;
+        receiver.await?;
+        Ok(())
     }
 
     pub async fn override_state(
