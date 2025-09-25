@@ -9,6 +9,7 @@ use fuel_tx::{
     Transaction,
 };
 use fuel_types::{
+    BlobId,
     BlockHeight,
     ContractId,
 };
@@ -23,6 +24,7 @@ use tokio::sync::mpsc;
 
 pub enum WhatToOverride {
     Contract { contract_id: ContractId },
+    Blob { blob_id: BlobId },
 }
 
 pub enum Event {
@@ -138,8 +140,11 @@ impl ExecutorInner {
                                 }
                                 Event::Override{ what, value } => {
                                     match what {
-                                        WhatToOverride::Contract{ contract_id } => {
+                                        WhatToOverride::Contract { contract_id } => {
                                             self.vm_storage.contracts_bytecodes.insert(contract_id, value.map(Into::into));
+                                        }
+                                        WhatToOverride::Blob { blob_id } => {
+                                            self.vm_storage.blobs.insert(blob_id, value.map(Into::into));
                                         }
                                     }
                                 }
