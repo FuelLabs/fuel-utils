@@ -91,6 +91,7 @@ impl VMStorage {
     }
 
     pub fn to_storage(&self, path: &PathBuf) -> anyhow::Result<()> {
+        tracing::info!("Saving executors state to the: {:?}", path);
         let json = serde_json::to_string_pretty(&self)?;
         std::fs::write(path, json)?;
         Ok(())
