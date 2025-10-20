@@ -20,7 +20,7 @@ env:
   GIT_REPO: ${{ github.repository }}
   GIT_REPO_NAME: ${{ github.event.repository.name }}
   CARGO_TERM_COLOR: always
-  RUST_VERSION: 1.86.0
+  RUST_VERSION: 1.90.0
   RUST_VERSION_FMT: nightly-2025-03-24
   RUST_VERSION_COV: nightly-2025-03-24
   RUSTFLAGS: -D warnings
