@@ -35,7 +35,9 @@ fn tx_from_network(c: &mut Criterion) {
         let transaction = transaction.clone();
         async move {
             let mut memory = MemoryInstance::new();
-            let receipts = executor.dry_run(transaction.clone(), &mut memory).unwrap();
+            let receipts = executor
+                .dry_run(transaction.clone(), &mut memory, false)
+                .unwrap();
             println!("{:?}", receipts);
             executor
         }
@@ -47,7 +49,9 @@ fn tx_from_network(c: &mut Criterion) {
         group.sample_size(100);
         group.bench_function("tx_from_network", |b| {
             b.iter(|| {
-                executor.dry_run(transaction.clone(), &mut memory).unwrap();
+                executor
+                    .dry_run(transaction.clone(), &mut memory, false)
+                    .unwrap();
             });
         });
         group.finish();

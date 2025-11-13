@@ -37,6 +37,7 @@ pub enum Event {
     },
     DryRun {
         txs: Vec<Transaction>,
+        commit_changes: bool,
         response: tokio::sync::oneshot::Sender<anyhow::Result<Vec<Vec<Receipt>>>>,
     },
 }
@@ -106,8 +107,10 @@ impl ExecutorInner {
         &mut self,
         transactions: Vec<Transaction>,
         memory: &mut MemoryInstance,
+        commit_changes: bool,
     ) -> anyhow::Result<Vec<Vec<Receipt>>> {
-        self.vm_storage.dry_run(transactions, memory)
+        self.vm_storage
+            .dry_run(transactions, memory, commit_changes)
     }
 
     pub async fn run(mut self) -> anyhow::Result<()> {
@@ -128,10 +131,10 @@ impl ExecutorInner {
                         }
                         Some(command) => {
                             match command {
-                                Event::DryRun{ txs, response } => {
+                                Event::DryRun{ txs, commit_changes, response } => {
                                     tracing::info!("Dry running transactions");
                                     let receipts = self
-                                        .dry_run(txs, &mut memory);
+                                        .dry_run(txs, &mut memory, commit_changes);
                                     tracing::info!("Finished dry running transactions");
                                     if let Err(_) = response.send(receipts) {
                                         tracing::error!("Failed to send receipts");
@@ -262,11 +265,13 @@ impl Executor {
     pub async fn dry_run(
         &self,
         transactions: Vec<Transaction>,
+        commit_changes: bool,
     ) -> anyhow::Result<Vec<Vec<Receipt>>> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         self.sender
             .send(Event::DryRun {
                 txs: transactions,
+                commit_changes,
                 response: sender,
             })
             .await?;

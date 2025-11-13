@@ -413,6 +413,7 @@ impl VMStorage {
         &mut self,
         transactions: Vec<Transaction>,
         memory_instance: &mut MemoryInstance,
+        commit_changes: bool,
     ) -> anyhow::Result<Vec<Vec<Receipt>>> {
         let params = self.consensus_parameters(
             self.last_block.header().consensus_parameters_version(),
@@ -453,6 +454,8 @@ impl VMStorage {
 
             if revert {
                 interpreter.as_mut().restore_from_snapshot();
+            } else if commit_changes {
+                interpreter.as_mut().commit_changes()?;
             }
 
             tracing::info!("Finished running snapshot");
