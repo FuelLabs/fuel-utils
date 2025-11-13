@@ -5,6 +5,7 @@ use crate::{
 use fuel_core_client::client::FuelClient;
 use fuel_core_types::blockchain::block::Block;
 use fuel_tx::{
+    ConsensusParameters,
     Receipt,
     Transaction,
 };
@@ -49,6 +50,7 @@ pub struct ExecutorInner {
     dry_run_queue: mpsc::Receiver<Event>,
     blocks_sender: mpsc::Sender<Block>,
     blocks: mpsc::Receiver<Block>,
+    consensus_parameters: Option<ConsensusParameters>,
 }
 
 impl ExecutorInner {
@@ -56,6 +58,7 @@ impl ExecutorInner {
         block_height: Option<BlockHeight>,
         path: PathBuf,
         url: Url,
+        consensus_parameters: Option<ConsensusParameters>,
     ) -> anyhow::Result<Self> {
         let (events_sender, events_queue) = mpsc::channel(1024);
         let (blocks_sender, blocks) = mpsc::channel(1024);
@@ -88,6 +91,7 @@ impl ExecutorInner {
             dry_run_queue: events_queue,
             blocks_sender,
             blocks,
+            consensus_parameters,
         })
     }
 
@@ -109,8 +113,12 @@ impl ExecutorInner {
         memory: &mut MemoryInstance,
         commit_changes: bool,
     ) -> anyhow::Result<Vec<Vec<Receipt>>> {
-        self.vm_storage
-            .dry_run(transactions, memory, commit_changes)
+        self.vm_storage.dry_run(
+            transactions,
+            memory,
+            commit_changes,
+            self.consensus_parameters.clone(),
+        )
     }
 
     pub async fn run(mut self) -> anyhow::Result<()> {
@@ -187,8 +195,11 @@ impl Executor {
         path: PathBuf,
         url: Url,
         follow_blocks: bool,
+        consensus_parameters: Option<ConsensusParameters>,
     ) -> anyhow::Result<Self> {
-        let executor_inner = ExecutorInner::new(block_height, path, url.clone()).await?;
+        let executor_inner =
+            ExecutorInner::new(block_height, path, url.clone(), consensus_parameters)
+                .await?;
 
         let block_sender = executor_inner.blocks_sender();
         let starting_block_height = executor_inner.block_height();
@@ -298,11 +309,12 @@ mod tests {
             PathBuf::new(),
             URL.parse().unwrap(),
             false,
+            None,
         )
         .await
         .unwrap();
 
-        let receipts = executor.dry_run(vec![tx.clone()]).await;
+        let receipts = executor.dry_run(vec![tx.clone()], false).await;
         tracing::info!("Receipts: {:?}", receipts);
     }
 
@@ -321,11 +333,12 @@ mod tests {
             PathBuf::new(),
             URL.parse().unwrap(),
             false,
+            None,
         )
         .await
         .unwrap();
 
-        let receipts = executor.dry_run(vec![first_tx, second_tx]).await;
+        let receipts = executor.dry_run(vec![first_tx, second_tx], false).await;
         println!("Receipts: {:?}", receipts);
     }
 }

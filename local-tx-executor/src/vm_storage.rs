@@ -414,10 +414,15 @@ impl VMStorage {
         transactions: Vec<Transaction>,
         memory_instance: &mut MemoryInstance,
         commit_changes: bool,
+        consensus_parameters: Option<ConsensusParameters>,
     ) -> anyhow::Result<Vec<Vec<Receipt>>> {
-        let params = self.consensus_parameters(
-            self.last_block.header().consensus_parameters_version(),
-        )?;
+        let params = if let Some(consensus_parameters) = consensus_parameters {
+            Arc::new(consensus_parameters)
+        } else {
+            self.consensus_parameters(
+                self.last_block.header().consensus_parameters_version(),
+            )?
+        };
         let block_height = *self.last_block.header().height();
 
         let executor_storage = ExecutionVMStorage::new(self, &self.last_block.clone())?;
