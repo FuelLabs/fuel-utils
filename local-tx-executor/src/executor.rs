@@ -1,26 +1,11 @@
-use crate::{
-    full_block::ClientExt,
-    vm_storage::VMStorage,
-};
+use crate::{full_block::ClientExt, vm_storage::VMStorage};
 use fuel_core_client::client::FuelClient;
 use fuel_core_types::blockchain::block::Block;
-use fuel_tx::{
-    ConsensusParameters,
-    Receipt,
-    Transaction,
-};
-use fuel_types::{
-    BlobId,
-    BlockHeight,
-    ContractId,
-};
+use fuel_tx::{ConsensusParameters, Receipt, Transaction};
+use fuel_types::{BlobId, BlockHeight, ContractId};
 use fuel_vm::prelude::MemoryInstance;
 use reqwest::Url;
-use std::{
-    path::PathBuf,
-    sync::Arc,
-    time::Duration,
-};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 use tokio::sync::mpsc;
 
 pub enum WhatToOverride {
@@ -209,7 +194,7 @@ impl Executor {
             if !follow_blocks {
                 tokio::time::sleep(Duration::from_secs(60 * 60 * 24 * 365)).await;
                 drop(block_sender);
-                return
+                return;
             }
 
             let mut starting_block_height = *starting_block_height + 1;
@@ -220,7 +205,7 @@ impl Executor {
                 let Ok(blocks) = client.full_blocks(range.clone()).await else {
                     tracing::error!("Failed to fetch blocks for range: {:?}", range);
                     tokio::time::sleep(Duration::from_millis(400)).await;
-                    continue
+                    continue;
                 };
 
                 for block in blocks {
@@ -237,12 +222,6 @@ impl Executor {
             let runtime = tokio::runtime::Builder::new_multi_thread()
                 .enable_all()
                 .worker_threads(1)
-                .on_thread_start(move || {
-                    thread_priority::set_current_thread_priority(
-                        thread_priority::ThreadPriority::Max,
-                    )
-                    .expect("Setting thread priority")
-                })
                 .build()
                 .expect("Creating Tokio runtime");
 
