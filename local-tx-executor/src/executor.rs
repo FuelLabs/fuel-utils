@@ -59,6 +59,7 @@ impl ExecutorInner {
         path: PathBuf,
         url: Url,
         consensus_parameters: Option<ConsensusParameters>,
+        follow_blocks: bool,
     ) -> anyhow::Result<Self> {
         let (events_sender, events_queue) = mpsc::channel(1024);
         let (blocks_sender, blocks) = mpsc::channel(1024);
@@ -80,7 +81,7 @@ impl ExecutorInner {
                 let blocks = client.full_blocks(latest_height..latest_height + 1).await?;
                 let block = blocks.into_iter().next().unwrap();
 
-                VMStorage::new(client, block)
+                VMStorage::new(client, block, follow_blocks)
             }
         };
 
@@ -197,9 +198,14 @@ impl Executor {
         follow_blocks: bool,
         consensus_parameters: Option<ConsensusParameters>,
     ) -> anyhow::Result<Self> {
-        let executor_inner =
-            ExecutorInner::new(block_height, path, url.clone(), consensus_parameters)
-                .await?;
+        let executor_inner = ExecutorInner::new(
+            block_height,
+            path,
+            url.clone(),
+            consensus_parameters,
+            follow_blocks,
+        )
+        .await?;
 
         let block_sender = executor_inner.blocks_sender();
         let starting_block_height = executor_inner.block_height();

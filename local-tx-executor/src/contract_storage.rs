@@ -54,7 +54,7 @@ impl ContractStorage {
     ) -> anyhow::Result<Option<&'a ContractsStateData>> {
         if !self.slots.contains_key(key) {
             tracing::warn!(
-                "Fetching asset value from the network for the contract {}.",
+                "Fetching slot value from the network for the contract {}.",
                 self.contract_id
             );
             let fetched_value = client

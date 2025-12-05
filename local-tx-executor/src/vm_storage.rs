@@ -67,10 +67,15 @@ pub struct VMStorage {
     pub(crate) headers: HashMap<BlockHeight, (Word, Bytes32)>,
     pub(crate) consensus_parameters:
         HashMap<ConsensusParametersVersion, Arc<ConsensusParameters>>,
+    pub(crate) fetch_all_assets_and_slots: bool,
 }
 
 impl VMStorage {
-    pub fn new(client: Arc<FuelClient>, last_block: Block) -> Self {
+    pub fn new(
+        client: Arc<FuelClient>,
+        last_block: Block,
+        fetch_all_assets_and_slots: bool,
+    ) -> Self {
         Self {
             client,
             last_block,
@@ -79,6 +84,7 @@ impl VMStorage {
             blobs: HashMap::new(),
             headers: HashMap::new(),
             consensus_parameters: HashMap::new(),
+            fetch_all_assets_and_slots,
         }
     }
 
@@ -284,9 +290,13 @@ impl VMStorage {
                 contract_id
             );
 
-            let storage = ContractStateLoader::new(*contract_id, self.client.clone())
-                .load_contract_state(self.block_height())
-                .await?;
+            let storage = if self.fetch_all_assets_and_slots {
+                ContractStateLoader::new(*contract_id, self.client.clone())
+                    .load_contract_state(self.block_height())
+                    .await?
+            } else {
+                ContractStorage::new(*contract_id, Default::default(), Default::default())
+            };
 
             self.contracts_storage.insert(*contract_id, storage);
         }
