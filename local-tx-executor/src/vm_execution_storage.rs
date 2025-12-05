@@ -212,7 +212,7 @@ impl<'s> InterpreterStorage for ExecutionVMStorage<'s> {
         contract_id: &ContractId,
         start_key: &Bytes32,
         range: usize,
-    ) -> Result<Vec<Option<Cow<ContractsStateData>>>, Self::DataError> {
+    ) -> Result<Vec<Option<Cow<'_, ContractsStateData>>>, Self::DataError> {
         let mut key = U256::from_big_endian(start_key.as_ref());
         let mut state_key = Bytes32::zeroed();
 
@@ -306,7 +306,10 @@ mod contract_bytecode {
     impl<'s> StorageInspect<ContractsRawCode> for ExecutionVMStorage<'s> {
         type Error = StorageError;
 
-        fn get(&self, key: &ContractId) -> Result<Option<Cow<Contract>>, Self::Error> {
+        fn get(
+            &self,
+            key: &ContractId,
+        ) -> Result<Option<Cow<'_, Contract>>, Self::Error> {
             self.storage
                 .borrow_mut()
                 .contract_bytecode(key)
@@ -403,7 +406,7 @@ mod contract_state {
         fn get(
             &self,
             key: &ContractsStateKey,
-        ) -> Result<Option<Cow<ContractsStateData>>, Self::Error> {
+        ) -> Result<Option<Cow<'_, ContractsStateData>>, Self::Error> {
             if let Some(value) = self.slots_changes.get(&key) {
                 return Ok(value.as_ref().map(|v| Cow::Borrowed(v)));
             }
@@ -534,7 +537,10 @@ mod upload {
     impl<'s> StorageInspect<UploadedBytecodes> for ExecutionVMStorage<'s> {
         type Error = StorageError;
 
-        fn get(&self, _: &Bytes32) -> Result<Option<Cow<UploadedBytecode>>, Self::Error> {
+        fn get(
+            &self,
+            _: &Bytes32,
+        ) -> Result<Option<Cow<'_, UploadedBytecode>>, Self::Error> {
             unreachable!("Executor only process Script transactions")
         }
 
@@ -563,7 +569,7 @@ mod blob {
     impl<'s> StorageInspect<BlobData> for ExecutionVMStorage<'s> {
         type Error = StorageError;
 
-        fn get(&self, key: &BlobId) -> Result<Option<Cow<BlobBytes>>, Self::Error> {
+        fn get(&self, key: &BlobId) -> Result<Option<Cow<'_, BlobBytes>>, Self::Error> {
             Ok(self
                 .storage
                 .borrow_mut()
@@ -657,7 +663,10 @@ mod contract_balances {
     impl<'s> StorageInspect<ContractsAssets> for ExecutionVMStorage<'s> {
         type Error = StorageError;
 
-        fn get(&self, key: &ContractsAssetKey) -> Result<Option<Cow<Word>>, Self::Error> {
+        fn get(
+            &self,
+            key: &ContractsAssetKey,
+        ) -> Result<Option<Cow<'_, Word>>, Self::Error> {
             if let Some(value) = self.balances_changes.get(key) {
                 return Ok(value.as_ref().map(|v| Cow::Borrowed(v)));
             }
