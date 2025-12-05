@@ -413,7 +413,7 @@ mod contract_state {
 
             let value = self.storage.borrow_mut().slot(key)?;
 
-            Ok(value.map(|v| Cow::Borrowed(v)))
+            Ok(value.map(|v| Cow::Owned(v)))
         }
 
         fn contains_key(&self, key: &ContractsStateKey) -> Result<bool, Self::Error> {

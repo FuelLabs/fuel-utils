@@ -51,7 +51,7 @@ impl ContractStorage {
         key: &Bytes32,
         block_height: &BlockHeight,
         client: &FuelClient,
-    ) -> anyhow::Result<Option<&'a ContractsStateData>> {
+    ) -> anyhow::Result<Option<ContractsStateData>> {
         if !self.slots.contains_key(key) {
             tracing::warn!(
                 "Fetching slot value from the network for the contract {}.",
@@ -66,7 +66,7 @@ impl ContractStorage {
             self.slots.insert(*key, fetched_value);
         }
 
-        Ok(self.slots.get(key).expect("We checked above; qed").as_ref())
+        Ok(self.slots.get(key).expect("We checked above; qed").clone())
     }
 
     pub async fn asset(

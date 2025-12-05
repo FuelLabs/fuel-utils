@@ -231,27 +231,26 @@ impl VMStorage {
     pub fn slot(
         &mut self,
         key: &ContractsStateKey,
-    ) -> anyhow::Result<Option<&'static ContractsStateData>> {
+    ) -> anyhow::Result<Option<ContractsStateData>> {
         let result = self.slot_inner(key).now_or_never();
 
         match result {
             None => Self::block_on(self.slot_inner(key)),
-            Some(result) => return result,
+            Some(result) => result,
         }
     }
 
     pub async fn slot_inner(
         &mut self,
         key: &ContractsStateKey,
-    ) -> anyhow::Result<Option<&'static ContractsStateData>> {
+    ) -> anyhow::Result<Option<ContractsStateData>> {
         let block_height = self.block_height();
         let client = self.client.clone();
         let storage = self.contract_storage_inner(key.contract_id()).await?;
 
         let value = storage
             .slot(key.state_key(), &block_height, client.as_ref())
-            .await?
-            .map(|v| unsafe { make_static(v) });
+            .await?;
 
         Ok(value)
     }
