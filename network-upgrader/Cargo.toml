@@ -23,15 +23,11 @@ aws-sdk-kms = "1.37.0"
 k256 = { version = "0.13.3", features = ["ecdsa-core"] }
 clap = { version = "4.5", features = ["derive", "env"] }
 indicatif = "0.17.9"
-fuels = { version = "0.76.0", features = ["accounts-signer-aws-kms"] }
-fuels-core = { version = "0.76.0" }
+fuels = { version = "0.77.0", features = ["accounts-signer-aws-kms"] }
+fuels-core = { version = "0.77.0" }
 fuel-core-types = { version = "0.48.0", features = ["serde"] }
 fuel-core-client = "0.48.0"
 postcard = "1"
 serde_json = { version = "1.0", features = ["raw_value"] }
 termion = "4"
 tokio = "1"
-
-[patch.crates-io]
-fuels = { git = "https://github.com/FuelLabs/fuels-rs/", branch = "chore/bump-fuel-core-and-fuel-vm-deps" }
-fuels-core = { git = "https://github.com/FuelLabs/fuels-rs/", branch = "chore/bump-fuel-core-and-fuel-vm-deps" }

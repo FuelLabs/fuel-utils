@@ -1799,8 +1799,9 @@ dependencies = [
 
 [[package]]
 name = "fuels"
-version = "0.76.0"
-source = "git+https://github.com/FuelLabs/fuels-rs/?branch=chore%2Fbump-fuel-core-and-fuel-vm-deps#5c56081bda1e29bbd0f9ef8ba9494fa678d61e11"
+version = "0.77.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b369521486798ce35edbc472216afbb84067c3259c1f0c5f537aed26a9512c17"
 dependencies = [
  "fuel-core-client",
  "fuel-crypto",
@@ -1814,8 +1815,9 @@ dependencies = [
 
 [[package]]
 name = "fuels-accounts"
-version = "0.76.0"
-source = "git+https://github.com/FuelLabs/fuels-rs/?branch=chore%2Fbump-fuel-core-and-fuel-vm-deps#5c56081bda1e29bbd0f9ef8ba9494fa678d61e11"
+version = "0.77.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2efce78bc5ef88f0df58e4757b5af1389da26067b4b01ce70b369bf6dfb9d900"
 dependencies = [
  "async-trait",
  "aws-config",
@@ -1841,8 +1843,9 @@ dependencies = [
 
 [[package]]
 name = "fuels-code-gen"
-version = "0.76.0"
-source = "git+https://github.com/FuelLabs/fuels-rs/?branch=chore%2Fbump-fuel-core-and-fuel-vm-deps#5c56081bda1e29bbd0f9ef8ba9494fa678d61e11"
+version = "0.77.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "721a52dce06b54ba56ed220a46ff500685ec7d388e127c4aeda15483c4962b20"
 dependencies = [
  "Inflector",
  "fuel-abi-types",
@@ -1856,8 +1859,9 @@ dependencies = [
 
 [[package]]
 name = "fuels-core"
-version = "0.76.0"
-source = "git+https://github.com/FuelLabs/fuels-rs/?branch=chore%2Fbump-fuel-core-and-fuel-vm-deps#5c56081bda1e29bbd0f9ef8ba9494fa678d61e11"
+version = "0.77.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2a9a7d230b755932bcea33ccde0ed731d762ee5bf1c053c43ae1ba798f1e08b"
 dependencies = [
  "async-trait",
  "auto_impl",
@@ -1885,8 +1889,9 @@ dependencies = [
 
 [[package]]
 name = "fuels-macros"
-version = "0.76.0"
-source = "git+https://github.com/FuelLabs/fuels-rs/?branch=chore%2Fbump-fuel-core-and-fuel-vm-deps#5c56081bda1e29bbd0f9ef8ba9494fa678d61e11"
+version = "0.77.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f28ebb1228b498598b522f28ea3957bed659ac1e60f89f4c00a673e65c7a0ca6"
 dependencies = [
  "fuels-code-gen",
  "itertools 0.12.1",
@@ -1897,8 +1902,9 @@ dependencies = [
 
 [[package]]
 name = "fuels-programs"
-version = "0.76.0"
-source = "git+https://github.com/FuelLabs/fuels-rs/?branch=chore%2Fbump-fuel-core-and-fuel-vm-deps#5c56081bda1e29bbd0f9ef8ba9494fa678d61e11"
+version = "0.77.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1861f261fb3f48214bd6cd376db343fe2ca3a3431d909bc54dec6dbf32541310"
 dependencies = [
  "async-trait",
  "fuel-abi-types",
@@ -1915,8 +1921,9 @@ dependencies = [
 
 [[package]]
 name = "fuels-test-helpers"
-version = "0.76.0"
-source = "git+https://github.com/FuelLabs/fuels-rs/?branch=chore%2Fbump-fuel-core-and-fuel-vm-deps#5c56081bda1e29bbd0f9ef8ba9494fa678d61e11"
+version = "0.77.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae67b91e765f0942f272fbb73484f664f9e55ec2db6894873622097488f29623"
 dependencies = [
  "fuel-core-chain-config",
  "fuel-core-client",
@@ -1929,7 +1936,6 @@ dependencies = [
  "fuels-accounts",
  "fuels-core",
  "futures",
- "portpicker",
  "rand 0.8.5",
  "tempfile",
  "tokio",
@@ -3144,15 +3150,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f84267b20a16ea918e43c6a88433c2d54fa145c92a811b5b047ccbe153674483"
 
 [[package]]
-name = "portpicker"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be97d76faf1bfab666e1375477b23fde79eccf0276e9b63b92a39d676a889ba9"
-dependencies = [
- "rand 0.8.5",
-]
-
-[[package]]
 name = "postcard"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3328,7 +3325,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls 0.23.33",
- "socket2 0.5.8",
+ "socket2 0.6.3",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -3366,7 +3363,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.8",
+ "socket2 0.6.3",
  "tracing",
  "windows-sys 0.59.0",
 ]
@@ -3801,7 +3798,7 @@ dependencies = [
  "security-framework 3.7.0",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4903,7 +4900,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
