@@ -978,7 +978,7 @@ dependencies = [
 [[package]]
 name = "fuel-core-client-ext"
 version = "0.0.1"
-source = "git+https://github.com/FuelLabs/network-watchtower?branch=main#8805fc83c25a9f1dd39b77fbcbe1d7d88c0b0f21"
+source = "git+https://github.com/FuelLabs/network-watchtower?rev=8805fc83c25a9f1dd39b77fbcbe1d7d88c0b0f21#8805fc83c25a9f1dd39b77fbcbe1d7d88c0b0f21"
 dependencies = [
  "anyhow",
  "async-trait",
