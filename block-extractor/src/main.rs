@@ -44,6 +44,19 @@ pub struct Blocks {
     /// The directory where to store the blocks.
     #[clap(long = "output-directory", short = 'o', env)]
     pub output_directory: PathBuf,
+    /// How many blocks to request per GraphQL page.
+    ///
+    /// The endpoint rejects a page whose query complexity exceeds its
+    /// `--graphql-max-complexity`, so this cannot be raised freely. See
+    /// `DEFAULT_BATCH_SIZE` for the measured ceiling of the public endpoints.
+    #[clap(
+        long = "batch-size",
+        short = 'b',
+        env,
+        default_value_t = DEFAULT_BATCH_SIZE,
+        value_parser = clap::value_parser!(u32).range(1..)
+    )]
+    pub batch_size: u32,
 }
 
 impl Blocks {
@@ -71,15 +84,32 @@ impl Command {
     }
 }
 
-async fn blocks(cmd: &Blocks) -> anyhow::Result<()> {
-    const BATCH_SIZE: u32 = 1000;
+/// Default number of blocks per GraphQL page.
+///
+/// `fuel-core` rejects a query whose complexity exceeds `--graphql-max-complexity`
+/// (default 80_000). The cost of the `blocks` connection is
+/// `(block_header + child_complexity) * first` and is computed from the *shape* of
+/// the query alone — the number of transactions the blocks actually carry does not
+/// enter into it. So the ceiling is a constant per endpoint, not a property of the
+/// range being extracted.
+///
+/// For the full-blocks query this tool sends, that works out to roughly 6.9k per
+/// block. Measured against both public endpoints: `first: 11` succeeds and
+/// `first: 12` returns "Query is too complex." The default is one below the
+/// measured ceiling so that the query gaining a field does not immediately break it.
+const DEFAULT_BATCH_SIZE: u32 = 10;
 
+/// The error `fuel-core` returns when a page exceeds `--graphql-max-complexity`.
+const TOO_COMPLEX: &str = "Query is too complex.";
+
+async fn blocks(cmd: &Blocks) -> anyhow::Result<()> {
     fs::create_dir_all(&cmd.output_directory)?;
 
     let client = FuelClient::new(cmd.url.as_str())?;
     let last_block_height = client.chain_info().await?.latest_block.header.height;
 
     let mut starting_block_height = cmd.starting_block_height;
+    let mut batch_size = cmd.batch_size;
 
     while starting_block_height <= last_block_height {
         if cmd.block_exists(starting_block_height) {
@@ -89,12 +119,29 @@ async fn blocks(cmd: &Blocks) -> anyhow::Result<()> {
         }
 
         let starting_block_height_request = starting_block_height - 1;
-        let page = PaginationRequest {
-            cursor: Some(format!("{starting_block_height_request}")),
-            results: BATCH_SIZE as i32,
-            direction: PageDirection::Forward,
+
+        // Insurance only: the ceiling is fixed for a given endpoint, but it is the
+        // operator's to tune, so a `--batch-size` that worked yesterday can be
+        // rejected today. Halve and retry on that one error; surface every other
+        // failure immediately rather than retrying into a loop.
+        let blocks = loop {
+            let page = PaginationRequest {
+                cursor: Some(format!("{starting_block_height_request}")),
+                results: batch_size as i32,
+                direction: PageDirection::Forward,
+            };
+            match client.full_blocks(page).await {
+                Ok(blocks) => break blocks,
+                Err(e) if e.to_string().contains(TOO_COMPLEX) && batch_size > 1 => {
+                    batch_size /= 2;
+                    eprintln!(
+                        "Endpoint rejected the page as too complex; \
+                         retrying with `--batch-size {batch_size}`."
+                    );
+                }
+                Err(e) => return Err(e.into()),
+            }
         };
-        let blocks = client.full_blocks(page).await?;
 
         let len = blocks.results.len() as u32;
         for block in blocks.results {
