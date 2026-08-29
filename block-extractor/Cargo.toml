@@ -17,7 +17,7 @@ anyhow = "1.0"
 clap = { version = "4.5", features = ["derive", "env"] }
 fuel-tx = "0.62.0"
 fuel-core-client = "0.44.0"
-fuel-core-client-ext = { git = "https://github.com/FuelLabs/network-watchtower", branch = "main" }
+fuel-core-client-ext = { git = "https://github.com/FuelLabs/network-watchtower", rev = "8805fc83c25a9f1dd39b77fbcbe1d7d88c0b0f21" }
 fuel-core-types = { version = "0.44.0", features = ["serde", "test-helpers"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
